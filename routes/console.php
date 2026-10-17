@@ -13,8 +13,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('app:setup', function (Hadeeth $hadeeth) {
-    $email = env('ADMIN_EMAIL');
-    $password = env('ADMIN_PASSWORD');
+    $email = config('app.admin_email');
+    $password = config('app.admin_password');
     if ($email && $password) {
         $admin = User::query()->firstOrNew(['email' => $email]);
         $admin->fill(['name' => 'admin', 'is_admin' => true]);

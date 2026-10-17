@@ -67,6 +67,10 @@ return [
 
     'timezone' => env('APP_TIMEZONE', 'Asia/Riyadh'),
 
+    // Admin account created by `php artisan app:setup`.
+    'admin_email' => env('ADMIN_EMAIL'),
+    'admin_password' => env('ADMIN_PASSWORD'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

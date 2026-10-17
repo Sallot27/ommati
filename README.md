@@ -53,7 +53,16 @@
    لتوليد مفاتيح VAPID مرة واحدة (على جهازك أو من Commands في Cloud):
    `php artisan webpush:vapid --show` ثم انسخ القيمتين. **لا تغيّرها بعدها** وإلا تتوقف إشعارات الأجهزة المسجلة.
 
-5. **Deploy commands** (في إعدادات البيئة):
+5. **Build commands** (الافتراضية مناسبة):
+
+   ```
+   composer install --no-dev
+   npm ci --audit false
+   npm run build
+   php artisan optimize
+   ```
+
+   **Deploy commands** (في إعدادات البيئة):
 
    ```
    php artisan migrate --force
