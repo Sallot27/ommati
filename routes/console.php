@@ -27,8 +27,6 @@ Artisan::command('app:setup', function (Hadeeth $hadeeth) {
         $this->warn('ADMIN_EMAIL / ADMIN_PASSWORD not set — admin account not created.');
     }
 
-    User::reader();
-
     if (! HadithPool::query()->exists()) {
         $this->info('Hadith pool: '.$hadeeth->syncPool().' entries');
     }

@@ -5,6 +5,17 @@
 @section('content')
 @php $D = fn ($n) => \App\Services\Quran::digits($n); @endphp
 <div class="space-y-5">
+    <form method="POST" action="{{ route('settings.update') }}" class="card px-5 py-5">
+        @csrf
+        <label for="name" class="font-semibold">اسمك</label>
+        <div class="mt-2 flex gap-2">
+            <input id="name" name="name" value="{{ old('name', $user->name) }}" minlength="2" maxlength="40" required class="min-w-0 flex-1 rounded-xl border border-line bg-surface-2 px-3 py-3 text-lg">
+            <button class="btn btn-soft">حفظ</button>
+        </div>
+        @error('name')<p class="mt-2 text-rose">{{ $message }}</p>@enderror
+        <p class="mt-2 text-sm text-muted">تقدّمك محفوظ بهذا الاسم. للدخول من جوال آخر اكتبي نفس الاسم.</p>
+    </form>
+
     <section class="card px-5 py-5" x-data>
         <h2 class="font-semibold">حجم الخط</h2>
         <div class="mt-3 flex items-center gap-3">
@@ -85,6 +96,10 @@
             </select>
         </label>
         <button class="btn btn-primary w-full">حفظ</button>
+    </form>
+    <form method="POST" action="{{ route('bye') }}" class="text-center">
+        @csrf
+        <button class="text-muted underline">تسجيل الخروج من هذا الجهاز</button>
     </form>
 </div>
 @endsection

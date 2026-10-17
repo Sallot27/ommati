@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Setting;
+use App\Models\ActivityDay;
 use App\Services\Daily;
 use App\Services\Quran;
 use App\Services\Tafsir;
@@ -20,10 +20,13 @@ class AyahController extends Controller
         }
 
         [$s, $from, $to] = $daily->ayahRef($date);
+        if ($date->isToday()) {
+            ActivityDay::mark($request->user(), 'ayah_read');
+        }
         $surah = $quran->surah($s);
         $ayahs = [];
         for ($a = $from; $a <= $to; $a++) {
-            $ayahs[] = ['n' => $a, 'text' => $quran->ayah($s, $a), 'audio' => $quran->audioUrl(Setting::get('reciter'), $s, $a)];
+            $ayahs[] = ['n' => $a, 'text' => $quran->ayah($s, $a), 'audio' => $quran->audioUrl((string) $request->user()->pref('reciter'), $s, $a)];
         }
 
         $tadabbur = ['actions' => [], 'guidance' => [], 'reflections' => []];

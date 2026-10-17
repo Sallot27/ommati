@@ -1,11 +1,11 @@
 /* Service worker: offline pages, cached assets, and push reminders. */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const PAGES = `pages-${VERSION}`;
 const ASSETS = `assets-${VERSION}`;
 
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches.open(PAGES).then((c) => c.addAll(['/offline', '/', '/adhkar', '/adhkar/morning', '/adhkar/evening', '/tasbih'])).catch(() => {})
+        caches.open(PAGES).then((c) => c.addAll(['/offline'])).catch(() => {})
     );
     self.skipWaiting();
 });

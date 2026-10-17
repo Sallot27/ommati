@@ -24,24 +24,25 @@ class RemindersTest extends TestCase
             'date' => ['hijri' => null], 'meta' => ['timezone' => 'Asia/Riyadh'],
         ]])]);
 
+        $this->actingAs($user = User::readerNamed('أم محمد'));
         $this->postJson('/push/subscribe', ['endpoint' => 'https://push.example/abc', 'keys' => ['p256dh' => 'k', 'auth' => 'a']])->assertOk();
-        $this->assertSame(1, User::reader()->pushSubscriptions()->count());
+        $this->assertSame(1, $user->pushSubscriptions()->count());
 
         Setting::put('reminder_morning', '06:30');
         $at = Carbon::parse('2026-10-17 06:32', 'Asia/Riyadh');
         $this->travelTo($at);
 
         $sent = app(Reminders::class)->run($at);
-        $this->assertContains('morning', $sent);
-        Notification::assertSentTo(User::reader(), Reminder::class, fn ($n) => str_contains($n->url, '/adhkar/morning'));
+        $this->assertContains($user->id.':morning', $sent);
+        Notification::assertSentTo($user, Reminder::class, fn ($n) => str_contains($n->url, '/adhkar/morning') && str_contains($n->body, 'أم محمد'));
 
         // Not sent twice
-        $this->assertNotContains('morning', app(Reminders::class)->run($at->copy()->addMinute()));
+        $this->assertNotContains($user->id.':morning', app(Reminders::class)->run($at->copy()->addMinute()));
 
         // Prayer reminder at Dhuhr
         $dhuhr = Carbon::parse('2026-10-17 11:41', 'Asia/Riyadh');
         $this->travelTo($dhuhr);
-        $this->assertContains('prayer:Dhuhr', app(Reminders::class)->run($dhuhr));
+        $this->assertContains($user->id.':prayer:Dhuhr', app(Reminders::class)->run($dhuhr));
     }
 
     public function test_nothing_sent_without_subscribers(): void

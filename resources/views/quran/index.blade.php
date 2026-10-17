@@ -24,7 +24,7 @@
         @foreach ($surahs as $s)
             <li x-show="!q || @js($s['name']).includes(q.replace('سورة','').trim()) || '{{ $s['n'] }}' === q.trim()">
                 <a href="{{ route('quran.show', $s['n']) }}" class="flex items-center gap-4 px-4 py-3.5 hover:bg-surface-2">
-                    <span class="grid size-10 shrink-0 place-items-center rounded-full border border-saffron text-sm text-saffron">{{ \App\Services\Quran::digits($s['n']) }}</span>
+                    <span class="star-badge"><span>{{ \App\Services\Quran::digits($s['n']) }}</span></span>
                     <span class="flex-1">
                         <span class="block text-lg font-medium">سورة {{ $s['name'] }}</span>
                         <span class="text-sm text-muted">{{ $s['type'] }} · {{ \App\Services\Quran::digits($s['count']) }} آية</span>

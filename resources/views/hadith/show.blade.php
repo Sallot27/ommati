@@ -24,7 +24,7 @@
 
     <section class="card px-5 py-5">
         <p class="naskh text-[1.25rem]">{{ $hadith->text }}</p>
-        <div class="mt-4 flex justify-end" x-data="hadithSave({{ $hadith->id }}, {{ $hadith->is_favorite ? 'true' : 'false' }})">
+        <div class="mt-4 flex justify-end" x-data="hadithSave({{ $hadith->id }}, {{ $saved ? 'true' : 'false' }})">
             <button @click="toggle()" class="btn btn-soft min-h-10 text-sm" :aria-pressed="saved">
                 <x-icon name="heart-fill" :size="20" class="text-rose" x-show="saved" x-cloak />
                 <x-icon name="heart" :size="20" x-show="!saved" />

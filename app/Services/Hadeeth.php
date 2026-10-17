@@ -51,9 +51,13 @@ class Hadeeth
                     ]);
                 } catch (Throwable $e) {
                     Log::warning('HadeethEnc list failed', ['category' => $categoryId, 'error' => $e->getMessage()]);
-                    break;
+
+                    return $count; // site unreachable: don't wait on every category
                 }
                 if (! $res->successful()) {
+                    if ($count === 0) {
+                        return 0;
+                    }
                     break;
                 }
                 foreach ((array) $res->json('data') as $row) {

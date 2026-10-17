@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\MemorizedAyah;
 use App\Models\Setting;
 use App\Models\User;
 use App\Notifications\Reminder;
@@ -10,7 +9,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
-/** Decides which reminders are due right now and sends each once per day. */
+/** Decides which reminders are due right now and sends each once per day, per person. */
 class Reminders
 {
     /** Minutes after the set time during which a missed reminder is still sent. */
@@ -18,7 +17,7 @@ class Reminders
 
     public function __construct(private Daily $daily, private Quran $quran, private PrayerTimes $prayer) {}
 
-    /** @return list<string> keys of reminders sent */
+    /** @return list<string> keys of reminders sent, as "userId:type" */
     public function run(?Carbon $now = null): array
     {
         $now ??= now();
@@ -28,36 +27,36 @@ class Reminders
             return $sent;
         }
 
-        $reader = User::reader();
-        if (! $reader->pushSubscriptions()->exists()) {
-            return $sent;
-        }
+        $users = User::query()->whereHas('pushSubscriptions')->get();
+        $prayerOn = Setting::get('prayer_reminders') === '1';
 
-        $name = (string) Setting::get('aunt_name');
-
-        foreach ($this->scheduled($name) as $type => [$time, $build]) {
-            if ($time && $this->isDue($now, $time) && $this->claim($now->toDateString().':'.$type)) {
-                [$title, $body, $url] = $build();
-                $reader->notify(new Reminder($title, $body, $url, $type));
-                $sent[] = $type;
+        foreach ($users as $user) {
+            foreach ($this->scheduled($user) as $type => [$time, $build]) {
+                if ($time && $this->isDue($now, $time) && $this->claim($user->id.':'.$now->toDateString().':'.$type)) {
+                    [$title, $body, $url] = $build();
+                    $user->notify(new Reminder($title, $body, $url, $type));
+                    $sent[] = $user->id.':'.$type;
+                }
             }
-        }
 
-        if (Setting::get('prayer_reminders') === '1') {
+            if (! $prayerOn) {
+                continue;
+            }
             try {
-                $times = $this->prayer->forDate($now);
+                $times = $this->prayer->forDate($now, (float) $user->pref('location_lat'), (float) $user->pref('location_lng'));
             } catch (Throwable) {
                 $times = null;
             }
-            if ($times) {
-                $local = $now->copy()->setTimezone($times['timezone']);
-                foreach (['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'] as $p) {
-                    $at = $times['timings'][$p] ?? null;
-                    if ($at && $this->isDue($local, $at, 5) && $this->claim($local->toDateString().':prayer:'.$p)) {
-                        $ar = PrayerTimes::NAMES[$p];
-                        $reader->notify(new Reminder("حان وقت صلاة {$ar}", "الصلاة خير من الدنيا وما فيها — صلاة {$ar} الساعة {$at}", url('/prayer'), 'prayer'));
-                        $sent[] = 'prayer:'.$p;
-                    }
+            if (! $times) {
+                continue;
+            }
+            $local = $now->copy()->setTimezone($times['timezone']);
+            foreach (['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'] as $p) {
+                $at = $times['timings'][$p] ?? null;
+                if ($at && $this->isDue($local, $at, 5) && $this->claim($user->id.':'.$local->toDateString().':prayer:'.$p)) {
+                    $ar = PrayerTimes::NAMES[$p];
+                    $user->notify(new Reminder("حان وقت صلاة {$ar}", "صلاة {$ar} الساعة {$at} — الصلاة خير من الدنيا وما فيها", url('/prayer'), 'prayer'));
+                    $sent[] = $user->id.':prayer:'.$p;
                 }
             }
         }
@@ -67,8 +66,10 @@ class Reminders
         return $sent;
     }
 
-    private function scheduled(string $name): array
+    private function scheduled(User $user): array
     {
+        $name = $user->name;
+
         return [
             'morning' => [Setting::get('reminder_morning'), fn () => ['أذكار الصباح ☀️', "صباحك طمأنينة يا {$name}، حان وقت أذكار الصباح", url('/adhkar/morning')]],
             'daily' => [Setting::get('reminder_daily'), function () {
@@ -77,9 +78,9 @@ class Reminders
 
                 return ['آية اليوم وحديثه 📖', "﴿{$text}…﴾", url('/ayah')];
             }],
-            'hifz' => [Setting::get('reminder_hifz'), function () {
-                $due = MemorizedAyah::query()->whereDate('next_review_on', '<=', now()->toDateString())->count();
-                $target = (int) Setting::get('hifz_daily_target');
+            'hifz' => [Setting::get('reminder_hifz'), function () use ($user) {
+                $due = $user->memorized()->whereDate('next_review_on', '<=', now()->toDateString())->count();
+                $target = (int) $user->pref('hifz_daily_target');
                 $body = "وِردك اليوم {$target} آيات جديدة".($due ? " و{$due} آية للمراجعة" : '').' — بارك الله في وقتك';
 
                 return ['وِرد الحفظ 🌿', $body, url('/hifz')];

@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\Setting;
+use App\Models\User;
 use App\Services\Quran;
 use App\Services\Tafsir;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,6 +17,7 @@ class PagesTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
+        $this->actingAs(User::readerNamed('أم محمد'));
         Http::preventStrayRequests();
         Http::fake([
             '*tafsir_api*tadabbur-wa-amal*' => Http::response(['text' => "الوقفات التدبرية\n\n١- ﴿فَإِنَّ مَعَ ٱلْعُسْرِ يُسْرًا﴾\n\nبشارة عظيمة. [السعدي: ١]\n\nالسؤال: ما البشارة؟\n\nالتوجيهات\n\n١- لا تيأس، ﴿فَإِنَّ مَعَ ٱلْعُسْرِ يُسْرًا﴾\n\nالعمل بالآيات\n\n١- اذكر نعمة أنعم الله بها عليك، ﴿وَأَمَّا بِنِعْمَةِ رَبِّكَ فَحَدِّثْ﴾\n٢- تفاءل عند الشدة، ﴿فَإِنَّ مَعَ ٱلْعُسْرِ يُسْرًا﴾\n\nمعاني الكلمات\n\n﴿يُسْرًا﴾ سهولة."]),
@@ -36,10 +37,9 @@ class PagesTest extends TestCase
         }
     }
 
-    public function test_home_greets_the_aunt_by_name(): void
+    public function test_home_greets_the_reader_by_name(): void
     {
-        Setting::put('aunt_name', 'أم محمد');
-        $this->get('/')->assertOk()->assertSee('يا أم محمد');
+        $this->get('/')->assertOk()->assertSee('يا أم محمد')->assertSee('وِرد اليوم');
     }
 
     public function test_unknown_pages_404(): void

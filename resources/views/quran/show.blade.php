@@ -34,7 +34,7 @@
     </nav>
 
     {{-- Player bar --}}
-    <div class="fixed inset-x-0 z-30 px-3" style="bottom: calc(4.6rem + env(safe-area-inset-bottom))">
+    <div class="fixed inset-x-0 z-30 px-3" style="bottom: calc(5.4rem + env(safe-area-inset-bottom))">
         <div class="mx-auto flex max-w-2xl items-center gap-2 rounded-2xl border border-line bg-surface px-3 py-2 shadow-lg shadow-black/10">
             <button @click="toggle()" class="grid size-12 shrink-0 place-items-center rounded-full bg-lapis-ink text-white dark:text-[#0f1823]" :aria-label="playing ? 'إيقاف' : 'تشغيل'">
                 <x-icon name="pause" x-show="playing" x-cloak />

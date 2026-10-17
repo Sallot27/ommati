@@ -2,39 +2,54 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityDay;
 use App\Models\Hadith;
 use App\Services\Daily;
 use App\Services\Hadeeth;
+use Illuminate\Http\Request;
 
 class HadithController extends Controller
 {
-    public function today(Daily $daily)
+    public function today(Request $request, Daily $daily)
     {
         $hadith = $daily->hadith();
+        if ($hadith) {
+            ActivityDay::mark($request->user(), 'hadith_read');
+        }
 
-        return view('hadith.show', ['hadith' => $hadith, 'isToday' => true]);
-    }
-
-    public function show(Hadeeth $hadeeth, int $id)
-    {
-        $hadith = $hadeeth->find($id) ?? abort(404);
-
-        return view('hadith.show', ['hadith' => $hadith, 'isToday' => false]);
-    }
-
-    public function saved()
-    {
-        return view('hadith.saved', [
-            'saved' => Hadith::query()->where('is_favorite', true)->latest('updated_at')->get(),
-            'recent' => Hadith::query()->where('is_favorite', false)->latest('created_at')->limit(30)->get(),
+        return view('hadith.show', [
+            'hadith' => $hadith,
+            'isToday' => true,
+            'saved' => $hadith && $request->user()->favoriteHadiths()->whereKey($hadith->id)->exists(),
         ]);
     }
 
-    public function toggleSave(int $id)
+    public function show(Request $request, Hadeeth $hadeeth, int $id)
     {
-        $hadith = Hadith::query()->findOrFail($id);
-        $hadith->update(['is_favorite' => ! $hadith->is_favorite]);
+        $hadith = $hadeeth->find($id) ?? abort(404);
 
-        return response()->json(['saved' => $hadith->is_favorite]);
+        return view('hadith.show', [
+            'hadith' => $hadith,
+            'isToday' => false,
+            'saved' => $request->user()->favoriteHadiths()->whereKey($hadith->id)->exists(),
+        ]);
+    }
+
+    public function saved(Request $request)
+    {
+        $saved = $request->user()->favoriteHadiths()->orderByPivot('created_at', 'desc')->get();
+
+        return view('hadith.saved', [
+            'saved' => $saved,
+            'recent' => Hadith::query()->whereNotIn('id', $saved->modelKeys())->latest('created_at')->limit(30)->get(),
+        ]);
+    }
+
+    public function toggleSave(Request $request, int $id)
+    {
+        Hadith::query()->findOrFail($id);
+        $result = $request->user()->favoriteHadiths()->toggle([$id]);
+
+        return response()->json(['saved' => ! empty($result['attached'])]);
     }
 }

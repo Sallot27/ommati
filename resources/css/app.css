@@ -99,11 +99,28 @@ body {
     word-spacing: 0.04em;
 }
 .ayah-no {
+    position: relative;
     display: inline-flex; align-items: center; justify-content: center;
-    min-width: 1.9em; height: 1.9em; margin-inline: 0.15em;
-    font-family: var(--font-sans); font-size: 0.55em; line-height: 1;
-    color: var(--saffron); border: 1.5px solid currentColor; border-radius: 999px;
+    width: 2.15em; height: 2.15em; margin-inline: 0.12em;
+    font-family: var(--font-sans); font-size: 0.5em; line-height: 1; font-weight: 500;
+    color: var(--saffron);
     vertical-align: middle;
+}
+/* 8-point star (khatam) ornament around ayah and surah numbers */
+.ayah-no::before, .star-badge::before {
+    content: ''; position: absolute; inset: 0;
+    background: currentColor;
+    -webkit-mask: var(--khatam) center / contain no-repeat;
+    mask: var(--khatam) center / contain no-repeat;
+}
+.star-badge {
+    position: relative; display: inline-grid; place-items: center;
+    width: 2.75rem; height: 2.75rem; flex-shrink: 0;
+    font-size: 0.85rem; font-weight: 600; color: var(--saffron);
+}
+.star-badge > span { color: var(--text); }
+:root {
+    --khatam: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cg fill='none' stroke='black' stroke-width='2.2'%3E%3Crect x='8.5' y='8.5' width='23' height='23' rx='1.5'/%3E%3Crect x='8.5' y='8.5' width='23' height='23' rx='1.5' transform='rotate(45 20 20)'/%3E%3C/g%3E%3C/svg%3E");
 }
 
 /* Text with diacritics (adhkar, hadith) */
@@ -146,7 +163,22 @@ body {
 
 /* Bottom navigation clears the home indicator on phones. */
 .safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 0.5rem); }
-.pb-nav { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)); }
+.pb-nav { padding-bottom: calc(6.5rem + env(safe-area-inset-bottom)); }
+
+/* Today's checklist */
+.task-check {
+    display: grid; place-items: center; width: 2rem; height: 2rem; flex-shrink: 0;
+    border-radius: 999px; border: 2px solid var(--line); color: transparent;
+}
+.task-done .task-check { background: var(--teal); border-color: var(--teal); color: #fff; }
+.dark .task-done .task-check { color: #0f1823; }
+.task-done .task-title { color: var(--muted); }
+
+.section-title { font-size: 1.15rem; font-weight: 600; color: var(--text); }
+
+/* Gentle entrance for the home header only */
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.rise { animation: rise 0.5s ease-out both; }
 
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition: none !important; animation: none !important; }

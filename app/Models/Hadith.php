@@ -13,6 +13,5 @@ class Hadith extends Model
     protected $casts = [
         'hints' => 'array',
         'words_meanings' => 'array',
-        'is_favorite' => 'boolean',
     ];
 }

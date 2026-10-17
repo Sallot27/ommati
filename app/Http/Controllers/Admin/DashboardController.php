@@ -9,6 +9,7 @@ use App\Models\MemorizedAyah;
 use App\Models\User;
 use App\Services\Library;
 use App\Services\Telegram;
+use NotificationChannels\WebPush\PushSubscription;
 
 class DashboardController extends Controller
 {
@@ -17,9 +18,9 @@ class DashboardController extends Controller
         return view('admin.dashboard', [
             'books' => Book::query()->count(),
             'memorized' => MemorizedAyah::query()->count(),
-            'streak' => ActivityDay::streak(),
-            'devices' => User::reader()->pushSubscriptions()->count(),
-            'week' => ActivityDay::query()->where('date', '>=', now()->subDays(6)->toDateString())->orderBy('date')->get(),
+            'devices' => PushSubscription::query()->count(),
+            'readers' => User::query()->where('is_admin', false)->withCount('memorized')->orderBy('name')->get(),
+            'week' => ActivityDay::query()->with('user')->where('date', '>=', now()->subDays(6)->toDateString())->orderByDesc('date')->get(),
             'telegram' => $telegram->enabled(),
             'vapid' => (bool) config('webpush.vapid.public_key'),
             'disk' => Library::disk(),

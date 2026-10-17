@@ -2,16 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Setting;
 use App\Services\Quran;
 use App\Services\Tafsir;
 use Illuminate\Http\Request;
 
 class QuranController extends Controller
 {
-    public function index(Quran $quran)
+    public function index(Request $request, Quran $quran)
     {
-        $lastRead = json_decode((string) Setting::get('last_read'), true);
+        $lastRead = $request->user()->pref('last_read');
 
         return view('quran.index', [
             'surahs' => $quran->index(),
@@ -20,7 +19,7 @@ class QuranController extends Controller
         ]);
     }
 
-    public function show(Quran $quran, int $surah)
+    public function show(Request $request, Quran $quran, int $surah)
     {
         $s = $quran->surah($surah) ?? abort(404);
 
@@ -29,7 +28,7 @@ class QuranController extends Controller
             'prev' => $quran->surah($surah - 1),
             'next' => $quran->surah($surah + 1),
             'reciters' => Quran::RECITERS,
-            'reciter' => Quran::reciter(Setting::get('reciter')),
+            'reciter' => Quran::reciter($request->user()->pref('reciter')),
         ]);
     }
 
@@ -37,7 +36,7 @@ class QuranController extends Controller
     public function data(Request $request, Quran $quran, int $surah)
     {
         $s = $quran->surah($surah) ?? abort(404);
-        $reciter = Quran::reciter($request->query('reciter', Setting::get('reciter')));
+        $reciter = Quran::reciter($request->query('reciter', $request->user()->pref('reciter')));
 
         return response()->json([
             'n' => $s['n'],
@@ -69,17 +68,17 @@ class QuranController extends Controller
     {
         $data = $request->validate(['s' => 'required|integer', 'a' => 'required|integer']);
         abort_unless($quran->exists($data['s'], $data['a']), 422);
-        Setting::put('last_read', json_encode(['s' => $data['s'], 'a' => $data['a']]));
+        $request->user()->setPrefs(['last_read' => ['s' => $data['s'], 'a' => $data['a']]]);
 
         return response()->noContent();
     }
 
-    public function listen(Quran $quran)
+    public function listen(Request $request, Quran $quran)
     {
         return view('quran.listen', [
             'surahs' => $quran->index(),
             'reciters' => Quran::RECITERS,
-            'reciter' => Quran::reciter(Setting::get('reciter')),
+            'reciter' => Quran::reciter($request->user()->pref('reciter')),
         ]);
     }
 }

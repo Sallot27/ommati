@@ -4,9 +4,6 @@
 <form method="POST" action="{{ route('admin.settings.update') }}" class="card max-w-xl space-y-4 px-5 py-5">
     @csrf
     <h1 class="text-xl font-semibold">الإعدادات</h1>
-    <label class="block">اسم عمتك (يظهر في الترحيب)
-        <input name="aunt_name" value="{{ old('aunt_name', $values['aunt_name']) }}" required class="mt-1 w-full rounded-xl border border-line bg-surface-2 px-3 py-2.5">
-    </label>
     <label class="block">اسم التطبيق
         <input name="app_title" value="{{ old('app_title', $values['app_title']) }}" required class="mt-1 w-full rounded-xl border border-line bg-surface-2 px-3 py-2.5">
     </label>

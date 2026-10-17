@@ -11,60 +11,68 @@ use App\Http\Controllers\PageController;
 use App\Http\Controllers\PrayerController;
 use App\Http\Controllers\PushController;
 use App\Http\Controllers\QuranController;
+use App\Http\Controllers\ReaderAuthController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TelegramWebhookController;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', [HomeController::class, 'index'])->name('home');
-
-// القرآن والتلاوات
-Route::get('/quran', [QuranController::class, 'index'])->name('quran.index');
-Route::get('/quran/{surah}', [QuranController::class, 'show'])->whereNumber('surah')->name('quran.show');
-Route::get('/api/quran/{surah}', [QuranController::class, 'data'])->whereNumber('surah')->name('quran.data');
-Route::get('/api/tafsir/{surah}/{ayah}', [QuranController::class, 'tafsir'])->whereNumber(['surah', 'ayah'])->name('quran.tafsir');
-Route::post('/quran/last-read', [QuranController::class, 'lastRead'])->name('quran.last-read');
-Route::get('/listen', [QuranController::class, 'listen'])->name('listen');
-
-// آية اليوم وحديث اليوم
-Route::get('/ayah', [AyahController::class, 'today'])->name('ayah.today');
-Route::get('/hadith', [HadithController::class, 'today'])->name('hadith.today');
-Route::get('/hadith/saved', [HadithController::class, 'saved'])->name('hadith.saved');
-Route::get('/hadith/{id}', [HadithController::class, 'show'])->whereNumber('id')->name('hadith.show');
-Route::post('/hadith/{id}/save', [HadithController::class, 'toggleSave'])->whereNumber('id')->name('hadith.save');
-
-// الأذكار
-Route::get('/adhkar', [AdhkarController::class, 'index'])->name('adhkar.index');
-Route::get('/adhkar/{slug}', [AdhkarController::class, 'show'])->name('adhkar.show');
-Route::post('/adhkar/{slug}/done', [AdhkarController::class, 'done'])->name('adhkar.done');
-
-// الحفظ
-Route::get('/hifz', [HifzController::class, 'index'])->name('hifz.index');
-Route::get('/hifz/learn/{surah}', [HifzController::class, 'learn'])->whereNumber('surah')->name('hifz.learn');
-Route::get('/hifz/review', [HifzController::class, 'review'])->name('hifz.review');
-Route::post('/hifz/mark', [HifzController::class, 'mark'])->name('hifz.mark');
-Route::post('/hifz/target', [HifzController::class, 'target'])->name('hifz.target');
-
-// المكتبة
-Route::get('/library', [LibraryController::class, 'index'])->name('library.index');
-Route::get('/library/{book}', [LibraryController::class, 'show'])->name('library.show');
-Route::get('/library/{book}/file', [LibraryController::class, 'file'])->name('library.file');
-
-// الصلاة والقبلة والسبحة
-Route::get('/prayer', [PrayerController::class, 'index'])->name('prayer');
-Route::get('/api/prayer', [PrayerController::class, 'times'])->name('prayer.times');
-Route::post('/prayer/location', [PrayerController::class, 'location'])->name('prayer.location');
-Route::get('/tasbih', [PageController::class, 'tasbih'])->name('tasbih');
-Route::get('/more', [PageController::class, 'more'])->name('more');
-Route::get('/install', [PageController::class, 'install'])->name('install');
+// الدخول بالاسم
+Route::get('/hello', [ReaderAuthController::class, 'show'])->name('hello');
+Route::post('/hello', [ReaderAuthController::class, 'login'])->middleware('throttle:10,1');
+Route::post('/bye', [ReaderAuthController::class, 'logout'])->name('bye');
 Route::view('/offline', 'offline')->name('offline');
 
-// الإعدادات والإشعارات
-Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
-Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
-Route::post('/push/subscribe', [PushController::class, 'subscribe'])->name('push.subscribe');
-Route::post('/push/unsubscribe', [PushController::class, 'unsubscribe'])->name('push.unsubscribe');
-Route::post('/push/test', [PushController::class, 'test'])->middleware('throttle:5,1')->name('push.test');
+Route::middleware('auth')->group(function () {
+    Route::get('/', [HomeController::class, 'index'])->name('home');
+
+    // القرآن والتلاوات
+    Route::get('/quran', [QuranController::class, 'index'])->name('quran.index');
+    Route::get('/quran/{surah}', [QuranController::class, 'show'])->whereNumber('surah')->name('quran.show');
+    Route::get('/api/quran/{surah}', [QuranController::class, 'data'])->whereNumber('surah')->name('quran.data');
+    Route::get('/api/tafsir/{surah}/{ayah}', [QuranController::class, 'tafsir'])->whereNumber(['surah', 'ayah'])->name('quran.tafsir');
+    Route::post('/quran/last-read', [QuranController::class, 'lastRead'])->name('quran.last-read');
+    Route::get('/listen', [QuranController::class, 'listen'])->name('listen');
+
+    // آية اليوم وحديث اليوم
+    Route::get('/ayah', [AyahController::class, 'today'])->name('ayah.today');
+    Route::get('/hadith', [HadithController::class, 'today'])->name('hadith.today');
+    Route::get('/hadith/saved', [HadithController::class, 'saved'])->name('hadith.saved');
+    Route::get('/hadith/{id}', [HadithController::class, 'show'])->whereNumber('id')->name('hadith.show');
+    Route::post('/hadith/{id}/save', [HadithController::class, 'toggleSave'])->whereNumber('id')->name('hadith.save');
+
+    // الأذكار
+    Route::get('/adhkar', [AdhkarController::class, 'index'])->name('adhkar.index');
+    Route::get('/adhkar/{slug}', [AdhkarController::class, 'show'])->name('adhkar.show');
+    Route::post('/adhkar/{slug}/done', [AdhkarController::class, 'done'])->name('adhkar.done');
+
+    // الحفظ
+    Route::get('/hifz', [HifzController::class, 'index'])->name('hifz.index');
+    Route::get('/hifz/learn/{surah}', [HifzController::class, 'learn'])->whereNumber('surah')->name('hifz.learn');
+    Route::get('/hifz/review', [HifzController::class, 'review'])->name('hifz.review');
+    Route::post('/hifz/mark', [HifzController::class, 'mark'])->name('hifz.mark');
+    Route::post('/hifz/target', [HifzController::class, 'target'])->name('hifz.target');
+
+    // المكتبة
+    Route::get('/library', [LibraryController::class, 'index'])->name('library.index');
+    Route::get('/library/{book}', [LibraryController::class, 'show'])->name('library.show');
+    Route::get('/library/{book}/file', [LibraryController::class, 'file'])->name('library.file');
+
+    // الصلاة والقبلة والسبحة
+    Route::get('/prayer', [PrayerController::class, 'index'])->name('prayer');
+    Route::get('/api/prayer', [PrayerController::class, 'times'])->name('prayer.times');
+    Route::post('/prayer/location', [PrayerController::class, 'location'])->name('prayer.location');
+    Route::get('/tasbih', [PageController::class, 'tasbih'])->name('tasbih');
+    Route::get('/more', [PageController::class, 'more'])->name('more');
+    Route::get('/install', [PageController::class, 'install'])->name('install');
+
+    // الإعدادات والإشعارات
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
+    Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
+    Route::post('/push/subscribe', [PushController::class, 'subscribe'])->name('push.subscribe');
+    Route::post('/push/unsubscribe', [PushController::class, 'unsubscribe'])->name('push.unsubscribe');
+    Route::post('/push/test', [PushController::class, 'test'])->middleware('throttle:5,1')->name('push.test');
+});
 
 // بوت تيلغرام
 Route::post('/telegram/webhook', TelegramWebhookController::class)->name('telegram.webhook');

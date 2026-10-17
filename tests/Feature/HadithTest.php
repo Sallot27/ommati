@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Hadith;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -14,6 +15,7 @@ class HadithTest extends TestCase
     public function test_daily_hadith_is_fetched_with_explanation_and_benefits(): void
     {
         $this->withoutVite();
+        $this->actingAs(User::readerNamed('أم محمد'));
         Http::preventStrayRequests();
         Http::fake([
             'hadeethenc.com/api/v1/hadeeths/list/*' => Http::response(['data' => [['id' => '2962', 'title' => 'عنوان']], 'meta' => ['last_page' => 1]]),
@@ -38,6 +40,7 @@ class HadithTest extends TestCase
     public function test_hadith_page_handles_network_failure(): void
     {
         $this->withoutVite();
+        $this->actingAs(User::readerNamed('أم محمد'));
         Http::fake(['*' => Http::response('', 500)]);
         $this->get('/hadith')->assertOk()->assertSee('تعذّر تحميل حديث اليوم');
     }

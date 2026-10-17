@@ -58,23 +58,23 @@
     @endif
 
     <main class="mx-auto max-w-2xl px-4 pb-nav pt-4">
-        @if (session('status'))
+        @if (session('status') && ! request()->routeIs('home'))
             <div class="mb-4 rounded-xl bg-teal-soft px-4 py-3 text-teal" role="status">{{ session('status') }}</div>
         @endif
         @yield('content')
     </main>
 
-    <nav class="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 backdrop-blur-md" aria-label="التنقل الرئيسي">
-        <ul class="mx-auto grid max-w-2xl grid-cols-5">
+    <nav class="fixed inset-x-3 z-40 mx-auto max-w-xl rounded-[1.6rem] border border-line bg-surface/95 shadow-xl shadow-black/10 backdrop-blur-md" style="bottom: max(env(safe-area-inset-bottom), 0.75rem)" aria-label="التنقل الرئيسي">
+        <ul class="grid grid-cols-5 px-1 py-1">
             @foreach ($nav as [$route, $label, $icon, $pattern])
                 @php $active = request()->routeIs(...explode('|', $pattern)); @endphp
                 <li>
                     <a href="{{ route($route) }}" @class([
-                        'flex flex-col items-center gap-0.5 pt-2.5 pb-1 text-[0.78rem]',
-                        'text-lapis-ink font-semibold' => $active,
-                        'text-muted' => ! $active,
+                        'flex flex-col items-center gap-0.5 rounded-[1.3rem] py-2 text-[0.78rem]',
+                        'bg-teal-soft text-teal font-semibold' => $active,
+                        'text-muted hover:text-ink' => ! $active,
                     ]) @if ($active) aria-current="page" @endif>
-                        <span @class(['grid h-8 w-14 place-items-center rounded-full', 'bg-surface-2' => $active])>
+                        <span class="grid h-7 place-items-center">
                             <x-icon :name="$icon" :size="23" />
                         </span>
                         {{ $label }}

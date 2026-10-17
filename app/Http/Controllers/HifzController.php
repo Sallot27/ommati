@@ -4,19 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityDay;
 use App\Models\MemorizedAyah;
-use App\Models\Setting;
 use App\Services\Quran;
 use Illuminate\Http\Request;
 
 class HifzController extends Controller
 {
-    public function index(Quran $quran)
+    public function index(Request $request, Quran $quran)
     {
-        $counts = MemorizedAyah::query()->selectRaw('surah, count(*) as c')->groupBy('surah')->pluck('c', 'surah');
+        $user = $request->user();
+        $counts = $user->memorized()->selectRaw('surah, count(*) as c')->groupBy('surah')->pluck('c', 'surah');
         $surahs = collect($quran->index())->map(fn ($s) => $s + ['done' => (int) ($counts[$s['n']] ?? 0)]);
 
         $inProgress = $surahs->filter(fn ($s) => $s['done'] > 0 && $s['done'] < $s['count'])->values();
-        $completed = $surahs->filter(fn ($s) => $s['done'] >= $s['count'])->values();
 
         // Suggested surah: one in progress, else the next short surah from the end of the mushaf.
         $suggested = $inProgress->first()
@@ -27,20 +26,20 @@ class HifzController extends Controller
             'surahs' => $surahs,
             'juzAmma' => $surahs->filter(fn ($s) => $s['n'] >= 78)->reverse()->values(),
             'inProgress' => $inProgress,
-            'completed' => $completed,
             'suggested' => $suggested,
-            'total' => $counts->sum(),
-            'dueReview' => MemorizedAyah::query()->whereDate('next_review_on', '<=', now()->toDateString())->count(),
-            'today' => (int) (ActivityDay::query()->find(now()->toDateString())?->ayahs_memorized ?? 0),
-            'target' => (int) Setting::get('hifz_daily_target'),
-            'streak' => ActivityDay::streak(),
+            'total' => (int) $counts->sum(),
+            'dueReview' => $user->memorized()->whereDate('next_review_on', '<=', now()->toDateString())->count(),
+            'today' => (int) $user->today()->ayahs_memorized,
+            'target' => (int) $user->pref('hifz_daily_target'),
+            'streak' => ActivityDay::streak($user),
         ]);
     }
 
     public function learn(Request $request, Quran $quran, int $surah)
     {
         $s = $quran->surah($surah) ?? abort(404);
-        $memorized = MemorizedAyah::query()->where('surah', $surah)->pluck('ayah')->all();
+        $user = $request->user();
+        $memorized = $user->memorized()->where('surah', $surah)->pluck('ayah')->map(fn ($a) => (int) $a)->all();
 
         $from = (int) $request->query('from', 0);
         if ($from < 1 || $from > $s['count']) {
@@ -54,16 +53,17 @@ class HifzController extends Controller
             'surah' => $s,
             'from' => $from,
             'memorized' => $memorized,
-            'target' => max(1, (int) Setting::get('hifz_daily_target')),
+            'target' => max(1, (int) $user->pref('hifz_daily_target')),
             'reciters' => Quran::RECITERS,
-            'reciter' => Quran::reciter(Setting::get('reciter')),
+            'reciter' => Quran::reciter($user->pref('reciter')),
         ]);
     }
 
-    public function review(Quran $quran)
+    public function review(Request $request, Quran $quran)
     {
-        $reciter = Quran::reciter(Setting::get('reciter'));
-        $due = MemorizedAyah::query()
+        $user = $request->user();
+        $reciter = Quran::reciter($user->pref('reciter'));
+        $due = $user->memorized()
             ->whereDate('next_review_on', '<=', now()->toDateString())
             ->orderBy('surah')->orderBy('ayah')->limit(60)->get();
 
@@ -88,7 +88,8 @@ class HifzController extends Controller
         ]);
         abort_unless($quran->exists($data['surah'], $data['ayah']), 422);
 
-        $row = MemorizedAyah::query()->firstOrNew(['surah' => $data['surah'], 'ayah' => $data['ayah']]);
+        $user = $request->user();
+        $row = MemorizedAyah::query()->firstOrNew(['user_id' => $user->id, 'surah' => $data['surah'], 'ayah' => $data['ayah']]);
         $today = now()->startOfDay();
 
         switch ($data['action']) {
@@ -96,7 +97,7 @@ class HifzController extends Controller
                 if (! $row->exists) {
                     $row->fill(['level' => 0, 'memorized_at' => now(), 'next_review_on' => $today->copy()->addDay()]);
                     $row->save();
-                    ActivityDay::bump('ayahs_memorized');
+                    ActivityDay::bump($user, 'ayahs_memorized');
                 }
                 break;
             case 'good':
@@ -105,7 +106,7 @@ class HifzController extends Controller
                     $row->next_review_on = $today->copy()->addDays(MemorizedAyah::intervalFor($row->level));
                     $row->last_reviewed_at = now();
                     $row->save();
-                    ActivityDay::bump('ayahs_reviewed');
+                    ActivityDay::bump($user, 'ayahs_reviewed');
                 }
                 break;
             case 'again':
@@ -114,7 +115,7 @@ class HifzController extends Controller
                     $row->next_review_on = $today->copy()->addDay();
                     $row->last_reviewed_at = now();
                     $row->save();
-                    ActivityDay::bump('ayahs_reviewed');
+                    ActivityDay::bump($user, 'ayahs_reviewed');
                 }
                 break;
             case 'forget':
@@ -123,15 +124,15 @@ class HifzController extends Controller
         }
 
         return response()->json([
-            'memorized' => MemorizedAyah::query()->where('surah', $data['surah'])->count(),
-            'today' => (int) (ActivityDay::query()->find(now()->toDateString())?->ayahs_memorized ?? 0),
+            'memorized' => $user->memorized()->where('surah', $data['surah'])->count(),
+            'today' => (int) $user->today()->ayahs_memorized,
         ]);
     }
 
     public function target(Request $request)
     {
         $data = $request->validate(['target' => 'required|integer|min:1|max:20']);
-        Setting::put('hifz_daily_target', (string) $data['target']);
+        $request->user()->setPrefs(['hifz_daily_target' => (int) $data['target']]);
 
         return back();
     }
