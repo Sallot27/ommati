@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Book;
 use App\Models\User;
+use App\Services\Telegram;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
@@ -50,43 +51,64 @@ class LibraryTest extends TestCase
         Storage::disk('public')->assertMissing($book->path);
     }
 
-    public function test_telegram_bot_adds_books_from_allowed_chat(): void
+    public function test_telegram_bot_adds_books_after_admin_approval(): void
     {
-        config([
-            'services.telegram.bot_token' => 'TEST',
-            'services.telegram.webhook_secret' => 'shh',
-            'services.telegram.allowed_chat_ids' => ['111'],
-        ]);
-        Http::fake([
-            'api.telegram.org/botTEST/getFile' => Http::response(['ok' => true, 'result' => ['file_path' => 'documents/file_1.pdf']]),
-            'api.telegram.org/file/botTEST/*' => Http::response('%PDF-1.4 test'),
-            'api.telegram.org/botTEST/sendMessage' => Http::response(['ok' => true, 'result' => []]),
-        ]);
+        config(['services.telegram.bot_token' => 'TEST', 'services.telegram.webhook_secret' => null]);
+        $sent = [];
+        Http::fake(function ($request) use (&$sent) {
+            $url = $request->url();
+            if (str_contains($url, 'sendMessage')) {
+                $sent[] = $request['chat_id'];
 
-        $update = fn ($chat) => ['message' => [
+                return Http::response(['ok' => true, 'result' => []]);
+            }
+            if (str_contains($url, 'getFile')) {
+                return Http::response(['ok' => true, 'result' => ['file_path' => 'documents/f.pdf']]);
+            }
+
+            return Http::response('%PDF-1.4 test');
+        });
+
+        $secret = app(Telegram::class)->secret();
+        $headers = ['X-Telegram-Bot-Api-Secret-Token' => $secret];
+        $post = fn ($chat, $type, $unique, $caption = null) => [$type === 'channel' ? 'channel_post' : 'message' => [
             'message_id' => 5,
-            'chat' => ['id' => $chat],
-            'caption' => 'رياض الصالحين | النووي | حديث',
-            'document' => ['file_id' => 'F1', 'file_unique_id' => 'U1', 'file_name' => 'riyad.pdf', 'file_size' => 1000],
+            'chat' => ['id' => $chat, 'type' => $type, 'title' => 'مكتبتي'],
+            'caption' => $caption,
+            'document' => ['file_id' => 'F'.$unique, 'file_unique_id' => $unique, 'file_name' => 'riyad_assalihin.pdf', 'file_size' => 1000],
         ]];
 
         // Wrong secret
-        $this->postJson('/telegram/webhook', $update(111))->assertForbidden();
+        $this->postJson('/telegram/webhook', $post(-100123, 'channel', 'U1'))->assertForbidden();
 
-        $headers = ['X-Telegram-Bot-Api-Secret-Token' => 'shh'];
-        // Stranger: not added
-        $this->postJson('/telegram/webhook', $update(999), $headers)->assertOk();
+        // Unknown channel: nothing added, nothing posted in the channel, shows as pending
+        $this->postJson('/telegram/webhook', $post(-100123, 'channel', 'U1'), $headers)->assertOk();
         $this->assertSame(0, Book::count());
+        $this->assertSame([], $sent);
+        $this->assertArrayHasKey('-100123', app(Telegram::class)->pendingChats());
 
-        $this->postJson('/telegram/webhook', $update(111), $headers)->assertOk();
+        // Admin approves from the panel
+        $admin = User::factory()->create(['is_admin' => true]);
+        $this->actingAs($admin)->post('/admin/telegram/approve', ['chat_id' => '-100123'])->assertRedirect();
+
+        // Channel post with a long description: added silently, title from file name
+        $this->postJson('/telegram/webhook', $post(-100123, 'channel', 'U1', "كتاب رائع\nللإمام النووي\nحمّل الآن"), $headers)->assertOk();
         $book = Book::firstOrFail();
-        $this->assertSame('رياض الصالحين', $book->title);
-        $this->assertSame('النووي', $book->author);
+        $this->assertSame('riyad assalihin', $book->title);
         $this->assertSame('telegram', $book->source);
         Storage::disk('public')->assertExists($book->path);
+        $this->assertSame([], $sent);
 
-        // Duplicate is ignored
-        $this->postJson('/telegram/webhook', $update(111), $headers)->assertOk();
+        // Duplicate ignored
+        $this->postJson('/telegram/webhook', $post(-100123, 'channel', 'U1'), $headers)->assertOk();
         $this->assertSame(1, Book::count());
+
+        // Private chat: needs approval too, then replies
+        $this->postJson('/telegram/webhook', $post(555, 'private', 'U2', 'رياض الصالحين | النووي | حديث'), $headers)->assertOk();
+        $this->assertSame(1, Book::count());
+        $this->post('/admin/telegram/approve', ['chat_id' => '555']);
+        $this->postJson('/telegram/webhook', $post(555, 'private', 'U2', 'رياض الصالحين | النووي | حديث'), $headers)->assertOk();
+        $this->assertSame('النووي', Book::latest('id')->first()->author);
+        $this->assertContains('555', $sent);
     }
 }

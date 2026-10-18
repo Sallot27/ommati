@@ -53,16 +53,12 @@ Artisan::command('reminders:send', function (Reminders $reminders) {
 })->purpose('Send any reminders that are due now');
 
 Artisan::command('telegram:webhook', function (Telegram $telegram) {
-    if (! $telegram->enabled() || ! config('services.telegram.webhook_secret')) {
-        $this->error('Set TELEGRAM_BOT_TOKEN and TELEGRAM_WEBHOOK_SECRET first.');
+    if (! $telegram->enabled()) {
+        $this->error('Set TELEGRAM_BOT_TOKEN first.');
 
         return 1;
     }
-    $telegram->call('setWebhook', [
-        'url' => route('telegram.webhook'),
-        'secret_token' => config('services.telegram.webhook_secret'),
-        'allowed_updates' => ['message', 'channel_post'],
-    ]);
+    $telegram->setWebhook(route('telegram.webhook'));
     $this->info('Webhook set to '.route('telegram.webhook'));
 })->purpose('Point the Telegram bot at this app');
 

@@ -32,6 +32,9 @@ class SettingsController extends Controller
                 + ['reminders_enabled' => Setting::get('reminders_enabled'), 'prayer_reminders' => Setting::get('prayer_reminders')],
             'telegram' => $telegram->enabled(),
             'webhook' => $webhook,
+            'approvedChats' => $telegram->approvedChats(),
+            'envChats' => config('services.telegram.allowed_chat_ids', []),
+            'pendingChats' => $telegram->pendingChats(),
             'devices' => PushSubscription::query()->count(),
         ]);
     }
@@ -56,16 +59,26 @@ class SettingsController extends Controller
 
     public function telegramWebhook(Telegram $telegram)
     {
-        abort_unless($telegram->enabled(), 422, 'أضف TELEGRAM_BOT_TOKEN أولاً.');
-        abort_unless(config('services.telegram.webhook_secret'), 422, 'أضف TELEGRAM_WEBHOOK_SECRET أولاً.');
+        abort_unless($telegram->enabled(), 422, 'أضف TELEGRAM_BOT_TOKEN في متغيرات البيئة أولاً.');
+        $telegram->setWebhook(route('telegram.webhook'));
 
-        $telegram->call('setWebhook', [
-            'url' => route('telegram.webhook'),
-            'secret_token' => config('services.telegram.webhook_secret'),
-            'allowed_updates' => ['message', 'channel_post'],
-        ]);
+        return back()->with('status', 'تم ربط البوت بالتطبيق. أرسل له رسالة أو أضفه مشرفاً في قناتك، ثم اضغط «سماح» هنا.');
+    }
 
-        return back()->with('status', 'تم ربط البوت بالتطبيق.');
+    public function telegramApprove(Request $request, Telegram $telegram)
+    {
+        $data = $request->validate(['chat_id' => 'required|string|max:32']);
+        $telegram->approve($data['chat_id']);
+
+        return back()->with('status', 'تم السماح. الكتب الجديدة من هذه المحادثة ستُضاف تلقائياً.');
+    }
+
+    public function telegramRevoke(Request $request, Telegram $telegram)
+    {
+        $data = $request->validate(['chat_id' => 'required|string|max:32']);
+        $telegram->revoke($data['chat_id']);
+
+        return back()->with('status', 'تم إلغاء السماح.');
     }
 
     public function pushTest()

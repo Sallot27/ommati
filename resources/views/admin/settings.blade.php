@@ -29,15 +29,52 @@
     @endif
 </div>
 
-@if ($telegram)
-    <section class="card mt-5 max-w-xl px-5 py-4 text-sm">
-        <h2 class="font-semibold">حالة بوت تيلغرام</h2>
-        @if (isset($webhook['error']))
-            <p class="text-rose">{{ $webhook['error'] }}</p>
-        @else
-            <p dir="ltr" class="mt-1 break-all text-start">{{ $webhook['url'] ?: '— غير مربوط —' }}</p>
-            @if (! empty($webhook['last_error_message']))<p class="text-rose">آخر خطأ: {{ $webhook['last_error_message'] }}</p>@endif
+<section class="card mt-5 max-w-xl px-5 py-4">
+    <h2 class="text-lg font-semibold">بوت تيلغرام للكتب</h2>
+    @if (! $telegram)
+        <p class="mt-2 text-muted">أضف <code dir="ltr">TELEGRAM_BOT_TOKEN</code> في متغيرات البيئة على Laravel Cloud ثم انشر التطبيق.</p>
+    @else
+        <ol class="mt-2 list-inside list-decimal space-y-1 text-[0.95rem] leading-relaxed">
+            <li>اضغط «ربط بوت تيلغرام بالتطبيق» بالأعلى (مرة واحدة).</li>
+            <li>أضف البوت <strong>مشرفاً</strong> في قناتك، وانشر فيها أي كتاب — أو أرسل للبوت رسالة بالخاص.</li>
+            <li>حدّث هذه الصفحة واضغط «سماح» بجانب القناة أو حسابك.</li>
+            <li>الكتب الجديدة في القناة تُضاف تلقائياً وبصمت. الكتب القديمة: حدّدها في القناة وحوّلها للبوت بالخاص.</li>
+        </ol>
+
+        <p class="mt-3 text-sm" dir="ltr" style="text-align:start">
+            @if (isset($webhook['error']))<span class="text-rose">{{ $webhook['error'] }}</span>
+            @else الربط: {{ $webhook['url'] ?: '— غير مربوط —' }} @endif
+        </p>
+        @if (! empty($webhook['last_error_message']))<p class="text-sm text-rose">آخر خطأ: {{ $webhook['last_error_message'] }}</p>@endif
+
+        @if ($pendingChats)
+            <h3 class="mt-4 font-semibold">بانتظار السماح</h3>
+            <ul class="mt-1 divide-y divide-line rounded-xl border border-line">
+                @foreach ($pendingChats as $id => $c)
+                    <li class="flex items-center gap-3 px-3 py-2">
+                        <span class="flex-1">{{ $c['title'] }} <span class="text-sm text-muted">{{ $c['type'] === 'channel' ? 'قناة' : ($c['type'] === 'private' ? 'حساب' : $c['type']) }}</span></span>
+                        <form method="POST" action="{{ route('admin.telegram.approve') }}">@csrf <input type="hidden" name="chat_id" value="{{ $id }}"><button class="btn btn-teal min-h-9 px-3 text-sm">سماح</button></form>
+                    </li>
+                @endforeach
+            </ul>
         @endif
-    </section>
-@endif
+
+        <h3 class="mt-4 font-semibold">مسموح لها بإضافة الكتب</h3>
+        @if ($approvedChats || $envChats)
+            <ul class="mt-1 divide-y divide-line rounded-xl border border-line">
+                @foreach ($approvedChats as $id => $c)
+                    <li class="flex items-center gap-3 px-3 py-2">
+                        <span class="flex-1">{{ $c['title'] }}</span>
+                        <form method="POST" action="{{ route('admin.telegram.revoke') }}">@csrf <input type="hidden" name="chat_id" value="{{ $id }}"><button class="text-sm text-rose">إلغاء</button></form>
+                    </li>
+                @endforeach
+                @foreach ($envChats as $id)
+                    <li class="px-3 py-2 text-muted" dir="ltr" style="text-align:start">{{ $id }} (من متغيرات البيئة)</li>
+                @endforeach
+            </ul>
+        @else
+            <p class="mt-1 text-muted">لا شيء بعد.</p>
+        @endif
+    @endif
+</section>
 @endsection

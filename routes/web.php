@@ -90,6 +90,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/settings', [Admin\SettingsController::class, 'edit'])->name('settings');
         Route::post('/settings', [Admin\SettingsController::class, 'update'])->name('settings.update');
         Route::post('/telegram/webhook', [Admin\SettingsController::class, 'telegramWebhook'])->name('telegram.webhook');
+        Route::post('/telegram/approve', [Admin\SettingsController::class, 'telegramApprove'])->name('telegram.approve');
+        Route::post('/telegram/revoke', [Admin\SettingsController::class, 'telegramRevoke'])->name('telegram.revoke');
         Route::post('/push/test', [Admin\SettingsController::class, 'pushTest'])->name('push.test');
     });
 });
