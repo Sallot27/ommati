@@ -8,12 +8,16 @@ use App\Models\DailyPick;
 use App\Models\Hadith;
 use App\Models\Message;
 use App\Services\Daily;
+use App\Services\Hijri;
+use App\Services\Khatma;
+use App\Services\Occasions;
 use App\Services\Quran;
+use App\Services\Treasury;
 use Illuminate\Http\Request;
 
 class HomeController extends Controller
 {
-    public function index(Request $request, Daily $daily, Quran $quran)
+    public function index(Request $request, Daily $daily, Quran $quran, Khatma $khatma, Occasions $occasions, Treasury $treasury)
     {
         $user = $request->user();
         $hour = (int) now()->format('G');
@@ -49,6 +53,12 @@ class HomeController extends Controller
         if ($due > 0) {
             $tasks[] = ['done' => false, 'title' => 'المراجعة', 'sub' => Quran::digits($due).' آية حان موعدها', 'href' => route('hifz.review'), 'icon' => 'repeat'];
         }
+        if ($plan = $khatma->plan($user)) {
+            $p = $khatma->portion($plan);
+            $tasks[] = ['done' => $today->khatma_read, 'title' => 'ورد الختمة',
+                'sub' => $today->khatma_read ? 'أتممتِ ورد اليوم' : 'الصفحات '.Quran::digits($p['from']).' إلى '.Quran::digits($p['to']),
+                'href' => $today->khatma_read ? route('khatma') : route('khatma.read'), 'icon' => 'book'];
+        }
         $tasks[] = ['done' => $today->ayah_read, 'title' => 'آية اليوم', 'sub' => 'سورة '.$quran->surah($s)['name'], 'href' => route('ayah.today'), 'icon' => 'book'];
         $tasks[] = ['done' => $today->hadith_read, 'title' => 'حديث اليوم', 'sub' => $hadith?->title ?? 'الشرح والفوائد', 'href' => route('hadith.today'), 'icon' => 'quote'];
 
@@ -66,6 +76,12 @@ class HomeController extends Controller
                 ? ['s' => (int) $lastRead['s'], 'a' => (int) $lastRead['a'], 'name' => $quran->surah((int) $lastRead['s'])['name']]
                 : null,
             'latestBook' => Book::query()->latest()->first(),
+            'occasions' => $occasions->on(now()),
+            'hijri' => Hijri::format(now()),
+            'nameOfDay' => $treasury->nameOfDay(),
+            'quote' => $treasury->quoteOfDay(),
+            'quoteImams' => $treasury->quotesData()['imams'],
+            'hasKhatma' => (bool) $plan,
         ]);
     }
 }

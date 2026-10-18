@@ -10,7 +10,7 @@
 
     <fieldset class="space-y-2">
         <legend class="font-semibold">أوقات التذكير (اتركه فارغاً لإيقافه)</legend>
-        @foreach (['reminder_morning' => 'أذكار الصباح', 'reminder_daily' => 'آية اليوم وحديثه', 'reminder_hifz' => 'ورد الحفظ', 'reminder_evening' => 'أذكار المساء', 'reminder_sleep' => 'أذكار النوم'] as $key => $label)
+        @foreach (['reminder_morning' => 'أذكار الصباح', 'reminder_daily' => 'آية اليوم وحديثه', 'reminder_hifz' => 'ورد الحفظ', 'reminder_evening' => 'أذكار المساء', 'reminder_sleep' => 'أذكار النوم', 'reminder_fasting' => 'ليلة أيام الصيام المستحب', 'reminder_friday' => 'صباح الجمعة'] as $key => $label)
             <label class="flex items-center justify-between gap-3">{{ $label }}
                 <input type="time" name="{{ $key }}" value="{{ old($key, $values[$key]) }}" class="rounded-xl border border-line bg-surface-2 px-3 py-2" dir="ltr">
             </label>

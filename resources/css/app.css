@@ -95,7 +95,6 @@ body {
     font-family: var(--font-quran);
     font-size: 1.65rem;
     line-height: 2.35;
-    color: var(--text);
     word-spacing: 0.04em;
 }
 .ayah-no {

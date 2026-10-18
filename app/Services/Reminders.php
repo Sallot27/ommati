@@ -15,7 +15,7 @@ class Reminders
     /** Minutes after the set time during which a missed reminder is still sent. */
     private const WINDOW = 10;
 
-    public function __construct(private Daily $daily, private Quran $quran, private PrayerTimes $prayer) {}
+    public function __construct(private Daily $daily, private Quran $quran, private PrayerTimes $prayer, private Occasions $occasions, private Khatma $khatma) {}
 
     /** @return list<string> keys of reminders sent, as "userId:type" */
     public function run(?Carbon $now = null): array
@@ -33,7 +33,11 @@ class Reminders
         foreach ($users as $user) {
             foreach ($this->scheduled($user) as $type => [$time, $build]) {
                 if ($time && $this->isDue($now, $time) && $this->claim($user->id.':'.$now->toDateString().':'.$type)) {
-                    [$title, $body, $url] = $build();
+                    $msg = $build($now);
+                    if ($msg === null) {
+                        continue;
+                    }
+                    [$title, $body, $url] = $msg;
                     $user->notify(new Reminder($title, $body, $url, $type));
                     $sent[] = $user->id.':'.$type;
                 }
@@ -81,11 +85,24 @@ class Reminders
             'hifz' => [Setting::get('reminder_hifz'), function () use ($user) {
                 $due = $user->memorized()->whereDate('next_review_on', '<=', now()->toDateString())->count();
                 $target = (int) $user->pref('hifz_daily_target');
-                $body = "وِردك اليوم {$target} آيات جديدة".($due ? " و{$due} آية للمراجعة" : '').' — بارك الله في وقتك';
+                $body = "وِردك اليوم {$target} آيات جديدة".($due ? " و{$due} آية للمراجعة" : '');
+                if ($plan = $this->khatma->plan($user)) {
+                    $p = $this->khatma->portion($plan);
+                    $body .= "، وورد الختمة من صفحة {$p['from']} إلى {$p['to']}";
+                }
+                $body .= ' — بارك الله في وقتك';
 
                 return ['وِرد الحفظ 🌿', $body, url('/hifz')];
             }],
             'evening' => [Setting::get('reminder_evening'), fn () => ['أذكار المساء 🌙', "مساؤك ذكر وسكينة يا {$name}، حان وقت أذكار المساء", url('/adhkar/evening')]],
+            'fasting' => [Setting::get('reminder_fasting'), function (Carbon $now) {
+                $what = $this->occasions->fastingTomorrow($now);
+
+                return $what ? ['تذكير بالصيام 🌙', "{$what} — يُستحب صيامه، ولا تنسي السحور", url('/days')] : null;
+            }],
+            'friday' => [Setting::get('reminder_friday'), function (Carbon $now) {
+                return (int) $now->dayOfWeek === 5 ? ['يوم الجمعة ✨', 'جمعة مباركة — سورة الكهف، والإكثار من الدعاء في ساعة الإجابة', url('/days')] : null;
+            }],
             'sleep' => [Setting::get('reminder_sleep'), fn () => ['أذكار النوم ✨', 'نامي على ذكر الله — أذكار النوم جاهزة', url('/adhkar/sleep')]],
         ];
     }

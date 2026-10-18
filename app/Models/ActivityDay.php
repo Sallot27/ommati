@@ -14,6 +14,7 @@ class ActivityDay extends Model
         'evening_done' => 'boolean',
         'ayah_read' => 'boolean',
         'hadith_read' => 'boolean',
+        'khatma_read' => 'boolean',
     ];
 
     public function user(): BelongsTo

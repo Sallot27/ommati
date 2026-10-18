@@ -84,7 +84,7 @@ class Hadeeth
         }
 
         try {
-            $res = Http::timeout(15)->retry(2, 500, throw: false)->get(self::BASE.'/hadeeths/one/', ['language' => 'ar', 'id' => $id]);
+            $res = Http::timeout(8)->retry(1, 300, throw: false)->get(self::BASE.'/hadeeths/one/', ['language' => 'ar', 'id' => $id]);
         } catch (Throwable $e) {
             Log::warning('HadeethEnc fetch failed', ['id' => $id, 'error' => $e->getMessage()]);
 

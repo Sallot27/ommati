@@ -11,7 +11,7 @@
          x-data="prayerTimes({ lat: {{ (float) $user->pref('location_lat') }}, lng: {{ (float) $user->pref('location_lng') }}, place: @js($user->pref('location_name')) })">
         <div class="flex items-start justify-between gap-3">
             <div class="rise">
-                <p class="text-white/75" x-data="hijri" x-text="text"></p>
+                <p class="text-white/75">{{ now()->locale('ar')->translatedFormat('l') }}، {{ $hijri }}</p>
                 <h1 class="mt-1 text-[1.8rem] font-semibold leading-snug">{{ $greeting }} يا {{ $user->name }}</h1>
                 @if (session('status'))<p class="mt-1 text-white/85">{{ session('status') }}</p>@endif
             </div>
@@ -65,6 +65,17 @@
         @endif
     </section>
 
+    @foreach ($occasions as $o)
+        <a href="{{ route('days') }}" @class(['flex items-center gap-4 rounded-2xl px-5 py-4', 'bg-saffron-soft' => $o['tone'] === 'saffron', 'bg-teal-soft' => $o['tone'] !== 'saffron'])>
+            <x-icon :name="$o['icon']" :size="28" @class(['text-saffron' => $o['tone'] === 'saffron', 'text-teal' => $o['tone'] !== 'saffron']) />
+            <span class="flex-1">
+                <span class="block text-lg font-semibold">{{ $o['title'] }}</span>
+                <span class="text-muted">{{ $o['sub'] }}</span>
+            </span>
+            <x-icon name="forward" :size="18" class="text-muted" />
+        </a>
+    @endforeach
+
     @if ($message)
         <section class="rounded-2xl border-s-4 border-saffron bg-saffron-soft px-5 py-4">
             <p class="text-sm text-muted">رسالة {{ $message->from_name ? 'من '.$message->from_name : 'لكِ' }} 💌</p>
@@ -79,6 +90,20 @@
         <p class="mt-1 flex items-center justify-center gap-1 text-lapis-ink">التفسير وكيف أعمل بها <x-icon name="forward" :size="18" /></p>
     </a>
 
+    {{-- Name of the day + saying of the imams --}}
+    <a href="{{ route('names.show', $nameOfDay['index']) }}" class="flex items-center gap-4 rounded-2xl bg-lapis-ink px-5 py-4 text-white dark:text-[#0f1823]">
+        <span class="star-badge size-14 text-white/70 dark:text-[#0f1823]/60"><span class="text-white dark:text-[#0f1823]"><x-icon name="star" :size="20" /></span></span>
+        <span class="flex-1">
+            <span class="block text-sm opacity-75">من أسماء الله الحسنى</span>
+            <span class="quran block text-[1.9rem] leading-snug">{{ $nameOfDay['name'] }}</span>
+        </span>
+        <x-icon name="forward" :size="20" />
+    </a>
+
+    <a href="{{ route('quotes') }}" class="block">
+        <x-quote :q="$quote" :imams="$quoteImams" :surah-name="fn ($n) => app(\App\Services\Quran::class)->surah($n)['name']" label="من كلام الأئمة" />
+    </a>
+
     {{-- Progress --}}
     <section class="grid grid-cols-2 gap-3">
         <a href="{{ route('hifz.index') }}" class="card px-4 py-4 hover:bg-surface-2">
@@ -90,6 +115,17 @@
             <p class="mt-0.5 text-3xl font-semibold">{{ $streak ? $D($streak) : '—' }}</p>
         </a>
     </section>
+
+    @unless ($hasKhatma)
+        <a href="{{ route('khatma') }}" class="card flex items-center gap-4 border-dashed px-5 py-4 hover:bg-surface-2">
+            <span class="grid size-11 place-items-center rounded-full bg-teal-soft text-teal"><x-icon name="book" /></span>
+            <span class="flex-1">
+                <span class="block font-semibold">ابدئي ختمة جديدة</span>
+                <span class="text-sm text-muted">ورد يومي يوصلك لختم القرآن</span>
+            </span>
+            <x-icon name="forward" :size="18" class="text-muted" />
+        </a>
+    @endunless
 
     @if ($lastRead)
         <a href="{{ route('quran.show', $lastRead['s']) }}?a={{ $lastRead['a'] }}" class="flex items-center gap-4 rounded-2xl bg-lapis-ink px-5 py-4 text-white dark:text-[#0f1823]">
@@ -105,8 +141,8 @@
     <nav aria-label="أقسام أخرى">
         <h2 class="section-title mb-2">المزيد لكِ</h2>
         <div class="grid grid-cols-4 gap-2 text-center text-[0.9rem]">
-            @foreach ([[route('tasbih'), 'beads', 'السبحة'], [route('listen'), 'headphones', 'التلاوات'], [route('prayer'), 'compass', 'القبلة'], [route('library.index'), 'library', 'المكتبة']] as [$href, $icon, $label])
-                <a href="{{ $href }}" class="flex flex-col items-center gap-1.5 rounded-2xl py-3 hover:bg-surface-2">
+            @foreach ([[route('khatma'), 'book', 'الختمة'], [route('duas'), 'heart', 'أدعية القرآن'], [route('days'), 'star', 'الأيام الفاضلة'], [route('names'), 'sun', 'الأسماء الحسنى'], [route('tasbih'), 'beads', 'السبحة'], [route('listen'), 'headphones', 'التلاوات'], [route('prayer'), 'compass', 'القبلة'], [route('library.index'), 'library', 'المكتبة']] as [$href, $icon, $label])
+                <a href="{{ $href }}" class="flex flex-col items-center gap-1.5 rounded-2xl py-3 leading-tight hover:bg-surface-2">
                     <span class="grid size-14 place-items-center rounded-2xl bg-teal-soft text-teal"><x-icon :name="$icon" :size="26" /></span>
                     {{ $label }}
                 </a>

@@ -46,6 +46,8 @@
             <li>ورد الحفظ: {{ $D($reminders['hifz'] ?? '—') }}</li>
             <li>أذكار المساء: {{ $D($reminders['evening'] ?? '—') }}</li>
             <li>أذكار النوم: {{ $D($reminders['sleep'] ?? '—') }}</li>
+            <li>ليلة الأيام المستحب صيامها: {{ $D(\App\Models\Setting::get('reminder_fasting') ?? '—') }}</li>
+            <li>صباح الجمعة: {{ $D(\App\Models\Setting::get('reminder_friday') ?? '—') }}</li>
             <li>عند دخول وقت كل صلاة</li>
         </ul>
 

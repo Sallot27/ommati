@@ -14,7 +14,7 @@ use Throwable;
 
 class SettingsController extends Controller
 {
-    private const KEYS = ['app_title', 'reminder_morning', 'reminder_evening', 'reminder_hifz', 'reminder_daily', 'reminder_sleep'];
+    private const KEYS = ['app_title', 'reminder_morning', 'reminder_evening', 'reminder_hifz', 'reminder_daily', 'reminder_sleep', 'reminder_fasting', 'reminder_friday'];
 
     public function edit(Telegram $telegram)
     {
@@ -49,6 +49,8 @@ class SettingsController extends Controller
             'reminder_hifz' => $time,
             'reminder_daily' => $time,
             'reminder_sleep' => $time,
+            'reminder_fasting' => $time,
+            'reminder_friday' => $time,
         ]);
         $data['reminders_enabled'] = $request->boolean('reminders_enabled') ? '1' : '0';
         $data['prayer_reminders'] = $request->boolean('prayer_reminders') ? '1' : '0';

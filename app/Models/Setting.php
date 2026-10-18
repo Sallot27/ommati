@@ -24,6 +24,8 @@ class Setting extends Model
         'reminder_hifz' => '10:00',
         'reminder_daily' => '08:00',
         'reminder_sleep' => '22:00',
+        'reminder_fasting' => '20:30',
+        'reminder_friday' => '09:30',
         'reminders_enabled' => '1',
         'prayer_reminders' => '1',
         'location_lat' => '24.7136',

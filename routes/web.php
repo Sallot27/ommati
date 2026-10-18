@@ -14,6 +14,7 @@ use App\Http\Controllers\QuranController;
 use App\Http\Controllers\ReaderAuthController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TelegramWebhookController;
+use App\Http\Controllers\TreasuryController;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Route;
 
@@ -57,6 +58,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/library', [LibraryController::class, 'index'])->name('library.index');
     Route::get('/library/{book}', [LibraryController::class, 'show'])->name('library.show');
     Route::get('/library/{book}/file', [LibraryController::class, 'file'])->name('library.file');
+
+    // كنوز: الأسماء الحسنى، أدعية القرآن، كلام الأئمة، الأيام الفاضلة، الختمة
+    Route::get('/names', [TreasuryController::class, 'names'])->name('names');
+    Route::get('/names/{i}', [TreasuryController::class, 'name'])->whereNumber('i')->name('names.show');
+    Route::get('/duas', [TreasuryController::class, 'duas'])->name('duas');
+    Route::get('/quotes', [TreasuryController::class, 'quotes'])->name('quotes');
+    Route::get('/days', [TreasuryController::class, 'days'])->name('days');
+    Route::get('/khatma', [TreasuryController::class, 'khatma'])->name('khatma');
+    Route::post('/khatma/start', [TreasuryController::class, 'khatmaStart'])->name('khatma.start');
+    Route::post('/khatma/stop', [TreasuryController::class, 'khatmaStop'])->name('khatma.stop');
+    Route::get('/khatma/read', [TreasuryController::class, 'khatmaRead'])->name('khatma.read');
+    Route::post('/khatma/done', [TreasuryController::class, 'khatmaDone'])->name('khatma.done');
 
     // الصلاة والقبلة والسبحة
     Route::get('/prayer', [PrayerController::class, 'index'])->name('prayer');
