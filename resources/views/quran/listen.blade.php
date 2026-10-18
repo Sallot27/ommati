@@ -3,11 +3,11 @@
 @section('back', route('quran.index'))
 
 @section('content')
-<div x-data="{ reciter: (() => { try { return JSON.parse(localStorage.getItem('reciter')) || @js($reciter) } catch (e) { return @js($reciter) } })(), q: '',
+<div x-data="{ available: @js(array_combine($surahReciterIds, array_column($surahReciters, 'available'))), reciter: (() => { try { return JSON.parse(localStorage.getItem('reciter')) || @js($reciter) } catch (e) { return @js($reciter) } })(), q: '',
               choose(id) { this.reciter = id; try { localStorage.setItem('reciter', JSON.stringify(id)) } catch (e) {} ; fetch('{{ route('settings.update') }}', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content }, body: JSON.stringify({ reciter: id }) }) } }">
     <h2 class="mb-2 font-semibold">اختاري القارئ</h2>
     <ul class="grid gap-2 sm:grid-cols-2">
-        @foreach ($reciters as $id => $r)
+        @foreach ($reciters + array_combine($surahReciterIds, $surahReciters) as $id => $r)
             <li>
                 <button @click="choose('{{ $id }}')" class="flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-start"
                         :class="reciter === '{{ $id }}' ? 'border-teal bg-teal-soft' : 'border-line bg-surface'">
@@ -24,10 +24,11 @@
     </ul>
 
     <h2 class="mb-2 mt-6 font-semibold">اختاري السورة</h2>
+    <p x-show="available[reciter]" x-cloak class="mb-2 text-sm text-muted">تظهر السور المتوفرة بصوت هذا القارئ فقط.</p>
     <input x-model="q" type="search" placeholder="ابحثي عن سورة" class="mb-3 w-full rounded-2xl border border-line bg-surface px-4 py-3 text-lg outline-none focus:border-lapis">
     <ul class="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
         @foreach ($surahs as $s)
-            <li x-show="!q || @js($s['name']).includes(q.trim())">
+            <li x-show="(!q || @js($s['name']).includes(q.trim())) && (!available[reciter] || available[reciter].includes({{ $s['n'] }}))">
                 <a href="{{ route('quran.show', $s['n']) }}?play=1" class="flex items-center gap-4 px-4 py-3 hover:bg-surface-2">
                     <span class="grid size-10 place-items-center rounded-full bg-teal-soft text-teal"><x-icon name="play" :size="18" /></span>
                     <span class="flex-1 text-lg">سورة {{ $s['name'] }}</span>

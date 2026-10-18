@@ -42,11 +42,18 @@
             </button>
             <div class="min-w-0 flex-1">
                 <select x-model="reciter" @change="setReciter($event.target.value)" class="w-full truncate bg-transparent text-sm font-medium outline-none" aria-label="القارئ">
-                    @foreach ($reciters as $id => $r)
-                        <option value="{{ $id }}">{{ $r['name'] }}</option>
-                    @endforeach
+                    <optgroup label="آية آية">
+                        @foreach ($reciters as $id => $r)
+                            <option value="{{ $id }}">{{ $r['name'] }}</option>
+                        @endforeach
+                    </optgroup>
+                    <optgroup label="السورة كاملة">
+                        @foreach ($surahReciters as $id => $r)
+                            <option value="{{ $id }}">{{ $r['name'] }}{{ in_array($surah['n'], \App\Services\Quran::surahsFor($id), true) ? '' : ' (غير متوفرة)' }}</option>
+                        @endforeach
+                    </optgroup>
                 </select>
-                <p class="text-xs text-muted" x-text="current ? 'الآية ' + ar(current) : 'اضغطي للاستماع من البداية'"></p>
+                <p class="text-xs text-muted" x-text="notice || (current ? 'الآية ' + ar(current) : (playing ? 'السورة كاملة' : 'اضغطي للاستماع من البداية'))"></p>
             </div>
             <label class="flex items-center gap-1 text-sm text-muted">
                 <x-icon name="repeat" :size="18" />

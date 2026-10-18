@@ -58,6 +58,22 @@ class PagesTest extends TestCase
         $this->assertStringStartsWith('الٓمٓ', $this->getJson('/api/quran/2')->json('ayahs.0.text'));
     }
 
+    public function test_whole_surah_reciters(): void
+    {
+        $res = $this->getJson('/api/quran/1?reciter=mp3.adel-rayyan')->assertOk();
+        $this->assertSame('https://cdn.mp3quran.net/audio/adel-rayyan/r1/001.mp3', $res->json('full'));
+        $this->assertStringContainsString('ar.husary', $res->json('ayahs.0.audio')); // per-ayah falls back
+
+        // Dibirov didn't record al-Fatiha, but did record al-Baqarah.
+        $this->assertNull($this->getJson('/api/quran/1?reciter=mp3.muhammad-dibirov')->json('full'));
+        $this->assertStringEndsWith('/002.mp3', $this->getJson('/api/quran/2?reciter=mp3.muhammad-dibirov')->json('full'));
+        $this->assertNull($this->getJson('/api/quran/37?reciter=mp3.islam-sobhi')->json('full'));
+
+        $this->post('/settings', ['reciter' => 'mp3.islam-sobhi'])->assertRedirect();
+        $this->get('/hifz/learn/112')->assertOk()->assertViewHas('reciter', 'ar.husary');
+        $this->get('/listen')->assertOk()->assertSee('عادل ريان')->assertSee('إسلام صبحي')->assertSee('محمد ديبيروف');
+    }
+
     public function test_daily_ayah_shows_tafsir_and_actions(): void
     {
         $this->get('/ayah')->assertOk()->assertSee('كيف أعمل بها')->assertSee('نص التفسير التجريبي');

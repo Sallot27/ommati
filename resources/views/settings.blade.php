@@ -84,9 +84,16 @@
             <span class="font-semibold">القارئ المفضّل</span>
             <select name="reciter" class="mt-2 w-full rounded-xl border border-line bg-surface-2 px-3 py-3 text-lg"
                     onchange="try { localStorage.setItem('reciter', JSON.stringify(this.value)) } catch (e) {}">
-                @foreach ($reciters as $id => $r)
-                    <option value="{{ $id }}" @selected($id === $reciter)>{{ $r['name'] }}</option>
-                @endforeach
+                <optgroup label="آية آية (للحفظ والاستماع)">
+                    @foreach ($reciters as $id => $r)
+                        <option value="{{ $id }}" @selected($id === $reciter)>{{ $r['name'] }}</option>
+                    @endforeach
+                </optgroup>
+                <optgroup label="السورة كاملة (للاستماع)">
+                    @foreach ($surahReciters as $id => $r)
+                        <option value="{{ $id }}" @selected($id === $reciter)>{{ $r['name'] }}</option>
+                    @endforeach
+                </optgroup>
             </select>
         </label>
         <label class="block">

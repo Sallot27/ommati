@@ -27,6 +27,51 @@ class Quran
         'ar.muhammadayyoub' => ['name' => 'محمد أيوب', 'bitrate' => 128, 'note' => 'مرتّل'],
     ];
 
+    /**
+     * Reciters available as whole-surah recordings on mp3quran.net (no per-ayah files).
+     * 'surahs' => null means all 114.
+     */
+    public const SURAH_RECITERS = [
+        'mp3.adel-rayyan' => ['name' => 'عادل ريان', 'server' => 'https://cdn.mp3quran.net/audio/adel-rayyan/r1/', 'surahs' => null, 'note' => 'السورة كاملة'],
+        'mp3.islam-sobhi' => ['name' => 'إسلام صبحي', 'server' => 'https://cdn.mp3quran.net/audio/islam-sobhi/r1/', 'surahs' => 'except:37,39,40,45,65', 'note' => 'السورة كاملة — ١٠٩ سور'],
+        'mp3.muhammad-dibirov' => ['name' => 'محمد ديبيروف', 'server' => 'https://cdn.mp3quran.net/audio/muhammad-dibirov/r1/', 'surahs' => '2,12,13,17,18,19,20,24,26,27,31,32,36,37,41,44,53,55,56,67,70,72,76,79', 'note' => 'السورة كاملة — ٢٤ سورة'],
+    ];
+
+    public static function isSurahReciter(?string $id): bool
+    {
+        return isset(self::SURAH_RECITERS[$id]);
+    }
+
+    /** @return list<int> surahs available for a whole-surah reciter */
+    public static function surahsFor(string $id): array
+    {
+        $spec = self::SURAH_RECITERS[$id]['surahs'] ?? null;
+        if ($spec === null) {
+            return range(1, 114);
+        }
+        if (str_starts_with($spec, 'except:')) {
+            return array_values(array_diff(range(1, 114), array_map('intval', explode(',', substr($spec, 7)))));
+        }
+
+        return array_map('intval', explode(',', $spec));
+    }
+
+    /** Whole-surah audio URL, or null if this reciter didn't record that surah. */
+    public static function surahAudioUrl(string $id, int $surah): ?string
+    {
+        if (! self::isSurahReciter($id) || ! in_array($surah, self::surahsFor($id), true)) {
+            return null;
+        }
+
+        return self::SURAH_RECITERS[$id]['server'].sprintf('%03d.mp3', $surah);
+    }
+
+    /** Any reciter id (per-ayah or whole-surah), defaulting to al-Husary. */
+    public static function anyReciter(?string $id): string
+    {
+        return isset(self::RECITERS[$id]) || isset(self::SURAH_RECITERS[$id]) ? $id : 'ar.husary';
+    }
+
     /** @return array<int, array<string, mixed>> keyed by surah number */
     public function all(): array
     {

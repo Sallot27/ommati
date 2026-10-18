@@ -34,7 +34,7 @@ class TreasuryTest extends TestCase
 
     public function test_new_sections_render(): void
     {
-        foreach (['/names', '/names/0', '/names/81', '/duas', '/quotes', '/quotes?who='.urlencode('ابن تيمية'), '/quotes?page=2', '/days', '/khatma', '/more', '/'] as $url) {
+        foreach (['/names', '/names/0', '/names/82', '/names/90', '/names/98', '/duas', '/quotes', '/quotes?who='.urlencode('ابن تيمية'), '/quotes?page=2', '/days', '/khatma', '/more', '/'] as $url) {
             $this->get($url)->assertOk();
         }
         $this->get('/names/500')->assertNotFound();
@@ -45,9 +45,9 @@ class TreasuryTest extends TestCase
     {
         $quran = app(Quran::class);
         $names = app(Treasury::class)->names();
-        $this->assertGreaterThan(80, count($names));
+        $this->assertCount(99, $names);
         foreach ($names as $n) {
-            $this->assertNotNull($quran->ayah($n['surah'], $n['ayah']), $n['name']);
+            $this->assertTrue(isset($n['surah']) ? $quran->exists($n['surah'], $n['ayah']) : (isset($n['hadith']) || isset($n['dorar'])), $n['name']);
         }
     }
 

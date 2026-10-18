@@ -371,20 +371,45 @@ Alpine.data('quranReader', (surah, reciter, startAyah = null, autoplay = false) 
         }
         if (autoplay) this.playFrom(startAyah || 1);
     },
-    audioUrl(n) {
-        return `/api/quran/${this.surah}?reciter=${this.reciter}`;
-    },
-    async urls() {
-        if (!this._data || this._data.reciter !== this.reciter) {
+    notice: '',
+    async load() {
+        if (!this._data || this._for !== this.reciter) {
             const res = await fetch(`/api/quran/${this.surah}?reciter=${this.reciter}`);
             this._data = await res.json();
+            this._for = this.reciter;
         }
-        return this._data.ayahs.map((a) => a.audio);
+        return this._data;
+    },
+    async urls() {
+        return (await this.load()).ayahs.map((a) => a.audio);
     },
     async playFrom(n) {
         this.stop();
         this.stopFlag = false;
-        const urls = await this.urls();
+        const data = await this.load();
+        const wholeSurah = this.reciter.startsWith('mp3.');
+        this.notice = '';
+        if (wholeSurah && data.full && n === 1) {
+            // Whole-surah recording: play it as one track.
+            this.playing = true;
+            this.current = null;
+            for (let r = 0; r < this.repeat; r++) {
+                try {
+                    if (!(await playOnce(data.full)) || this.stopFlag) break;
+                } catch {
+                    this.notice = 'تعذّر تشغيل التلاوة، تأكدي من الاتصال بالإنترنت.';
+                    break;
+                }
+            }
+            this.playing = false;
+            return;
+        }
+        if (wholeSurah) {
+            this.notice = data.full
+                ? 'التشغيل من آية محددة متاح بصوت الشيخ الحصري'
+                : 'هذه السورة غير متوفرة بصوت هذا القارئ، فتُتلى بصوت الشيخ الحصري';
+        }
+        const urls = data.ayahs.map((a) => a.audio);
         this.playing = true;
         for (let i = n; i <= urls.length; i++) {
             this.current = i;

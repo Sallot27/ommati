@@ -16,7 +16,8 @@ class SettingsController extends Controller
         return view('settings', [
             'user' => $user,
             'reciters' => Quran::RECITERS,
-            'reciter' => Quran::reciter($user->pref('reciter')),
+            'surahReciters' => Quran::SURAH_RECITERS,
+            'reciter' => Quran::anyReciter($user->pref('reciter')),
             'target' => (int) $user->pref('hifz_daily_target'),
             'vapid' => config('webpush.vapid.public_key'),
             'reminders' => [
@@ -32,7 +33,7 @@ class SettingsController extends Controller
     public function update(Request $request)
     {
         $data = $request->validate([
-            'reciter' => 'nullable|in:'.implode(',', array_keys(Quran::RECITERS)),
+            'reciter' => 'nullable|in:'.implode(',', array_merge(array_keys(Quran::RECITERS), array_keys(Quran::SURAH_RECITERS))),
             'hifz_daily_target' => 'nullable|integer|min:1|max:20',
             'name' => 'nullable|string|min:2|max:40',
         ]);

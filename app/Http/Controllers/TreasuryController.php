@@ -23,18 +23,21 @@ class TreasuryController extends Controller
         ]);
     }
 
-    public function name(Treasury $treasury, Quran $quran, Tafsir $tafsir, int $i)
+    public function name(Treasury $treasury, Quran $quran, Tafsir $tafsir, Hadeeth $hadeeth, int $i)
     {
         $names = $treasury->names();
         $n = $names[$i] ?? abort(404);
+        $fromQuran = isset($n['surah']);
 
         return view('names.show', [
             'i' => $i,
             'n' => $n,
-            'ayah' => $quran->ayah($n['surah'], $n['ayah']),
-            'surah' => $quran->surah($n['surah'])['name'],
-            'muyassar' => $tafsir->text('muyassar', $n['surah'], $n['ayah']),
-            'saadi' => $tafsir->text('saadi', $n['surah'], $n['ayah']),
+            'fromQuran' => $fromQuran,
+            'ayah' => $fromQuran ? $quran->ayah($n['surah'], $n['ayah']) : null,
+            'surah' => $fromQuran ? $quran->surah($n['surah'])['name'] : null,
+            'muyassar' => $fromQuran ? $tafsir->text('muyassar', $n['surah'], $n['ayah']) : null,
+            'saadi' => $fromQuran ? $tafsir->text('saadi', $n['surah'], $n['ayah']) : null,
+            'hadith' => isset($n['hadith']) ? $hadeeth->find($n['hadith']) : null,
             'prev' => $i > 0 ? $i - 1 : null,
             'next' => $i < count($names) - 1 ? $i + 1 : null,
             'count' => count($names),

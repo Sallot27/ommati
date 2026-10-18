@@ -28,7 +28,8 @@ class QuranController extends Controller
             'prev' => $quran->surah($surah - 1),
             'next' => $quran->surah($surah + 1),
             'reciters' => Quran::RECITERS,
-            'reciter' => Quran::reciter($request->user()->pref('reciter')),
+            'surahReciters' => Quran::SURAH_RECITERS,
+            'reciter' => Quran::anyReciter($request->user()->pref('reciter')),
         ]);
     }
 
@@ -36,13 +37,15 @@ class QuranController extends Controller
     public function data(Request $request, Quran $quran, int $surah)
     {
         $s = $quran->surah($surah) ?? abort(404);
-        $reciter = Quran::reciter($request->query('reciter', $request->user()->pref('reciter')));
+        $requested = Quran::anyReciter($request->query('reciter', $request->user()->pref('reciter')));
+        $reciter = Quran::reciter($requested); // per-ayah files (al-Husary if a whole-surah reciter is chosen)
 
         return response()->json([
             'n' => $s['n'],
             'name' => $s['name'],
             'count' => $s['count'],
             'reciter' => $reciter,
+            'full' => Quran::surahAudioUrl($requested, $surah),
             'ayahs' => collect($s['ayahs'])->map(fn ($text, $i) => [
                 'n' => $i + 1,
                 'text' => $text,
@@ -78,7 +81,9 @@ class QuranController extends Controller
         return view('quran.listen', [
             'surahs' => $quran->index(),
             'reciters' => Quran::RECITERS,
-            'reciter' => Quran::reciter($request->user()->pref('reciter')),
+            'surahReciters' => array_map(fn ($r, $id) => $r + ['available' => Quran::surahsFor($id)], Quran::SURAH_RECITERS, array_keys(Quran::SURAH_RECITERS)),
+            'surahReciterIds' => array_keys(Quran::SURAH_RECITERS),
+            'reciter' => Quran::anyReciter($request->user()->pref('reciter')),
         ]);
     }
 }
