@@ -12,6 +12,7 @@ class Book extends Model
     protected $casts = [
         'last_opened_at' => 'datetime',
         'size' => 'integer',
+        'pages' => 'integer',
     ];
 
     public function isPdf(): bool
@@ -33,6 +34,16 @@ class Book extends Model
 
     public function deleteFile(): void
     {
-        Storage::disk($this->disk)->delete($this->path);
+        Storage::disk($this->disk)->delete(array_filter([$this->path, $this->cover_path]));
+    }
+
+    public function hasCover(): bool
+    {
+        return (bool) $this->cover_path;
+    }
+
+    public function progressFor(?User $user): ?BookProgress
+    {
+        return $user ? BookProgress::query()->where('user_id', $user->id)->where('book_id', $this->id)->first() : null;
     }
 }

@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Book;
 use App\Services\Library;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class BookController extends Controller
 {
@@ -56,7 +58,18 @@ class BookController extends Controller
             'author' => 'nullable|string|max:120',
             'category' => 'nullable|string|max:80',
             'description' => 'nullable|string|max:2000',
+            'cover' => 'nullable|image|max:4096',
+            'remove_cover' => 'nullable|boolean',
         ]);
+        if ($request->hasFile('cover') || $request->boolean('remove_cover')) {
+            if ($book->cover_path) {
+                Storage::disk($book->disk)->delete($book->cover_path);
+            }
+            $data['cover_path'] = $request->hasFile('cover')
+                ? $request->file('cover')->storeAs('covers', $book->id.'-'.Str::random(8).'.'.$request->file('cover')->extension(), $book->disk)
+                : null;
+        }
+        unset($data['cover'], $data['remove_cover']);
         $book->update($data);
 
         return redirect()->route('admin.books.index')->with('status', 'تم حفظ التعديلات.');

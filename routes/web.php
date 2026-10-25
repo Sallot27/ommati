@@ -58,6 +58,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/library', [LibraryController::class, 'index'])->name('library.index');
     Route::get('/library/{book}', [LibraryController::class, 'show'])->name('library.show');
     Route::get('/library/{book}/file', [LibraryController::class, 'file'])->name('library.file');
+    Route::get('/library/{book}/read', [LibraryController::class, 'read'])->name('library.read');
+    Route::get('/library/{book}/stream', [LibraryController::class, 'stream'])->name('library.stream');
+    Route::get('/library/{book}/cover', [LibraryController::class, 'cover'])->name('library.cover');
+    Route::post('/library/{book}/cover', [LibraryController::class, 'storeCover'])->middleware('throttle:30,1')->name('library.cover.store');
+    Route::post('/library/{book}/progress', [LibraryController::class, 'progress'])->name('library.progress');
+    Route::post('/library/{book}/bookmarks', [LibraryController::class, 'addBookmark'])->name('library.bookmarks.store');
+    Route::delete('/library/{book}/bookmarks/{bookmark}', [LibraryController::class, 'deleteBookmark'])->name('library.bookmarks.destroy');
 
     // كنوز: الأسماء الحسنى، أدعية القرآن، كلام الأئمة، الأيام الفاضلة، الختمة
     Route::get('/names', [TreasuryController::class, 'names'])->name('names');

@@ -771,4 +771,15 @@ Alpine.data('hadithSave', (id, saved) => ({
 
 window.Alpine = Alpine;
 window.ar = ar;
-Alpine.start();
+
+// The PDF reader is large, so it is only loaded on pages that need it.
+if (document.querySelector('[data-needs-pdf]')) {
+    import('./pdf-reader.js').then((m) => {
+        Alpine.data('pdfReader', m.pdfReader);
+        window.generateMissingCovers = m.generateMissingCovers;
+        Alpine.start();
+        document.dispatchEvent(new Event('pdf-ready'));
+    });
+} else {
+    Alpine.start();
+}

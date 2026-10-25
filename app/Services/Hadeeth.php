@@ -96,8 +96,9 @@ class Hadeeth
 
         $j = $res->json();
 
-        return Hadith::query()->create([
-            'id' => (int) $j['id'],
+        // updateOrCreate: safe if two requests fetch the same hadith at once,
+        // or if the API answers with a different (canonical) id.
+        return Hadith::query()->updateOrCreate(['id' => (int) $j['id']], [
             'title' => (string) ($j['title'] ?? ''),
             'text' => (string) $j['hadeeth'],
             'attribution' => $j['attribution'] ?? null,

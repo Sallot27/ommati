@@ -25,6 +25,19 @@
         <input name="category" list="cats" value="{{ old('category', $book->category) }}" class="mt-1 w-full rounded-xl border border-line bg-surface-2 px-3 py-2.5">
         <datalist id="cats">@foreach ($categories as $c)<option value="{{ $c }}">@endforeach</datalist>
     </label>
+    @if ($book->exists)
+        <div class="flex items-center gap-4">
+            @if ($book->hasCover())
+                <img src="{{ route('library.cover', $book) }}" alt="" class="h-24 w-16 rounded-md object-cover">
+            @endif
+            <label class="block flex-1">صورة الغلاف (اختياري — وإلا تُؤخذ الصفحة الأولى تلقائياً)
+                <input type="file" name="cover" accept="image/*" class="mt-1 block w-full rounded-xl border border-line bg-surface-2 px-3 py-2">
+            </label>
+        </div>
+        @if ($book->hasCover())
+            <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="remove_cover" value="1"> حذف الغلاف الحالي</label>
+        @endif
+    @endif
     <label class="block">نبذة
         <textarea name="description" rows="3" class="mt-1 w-full rounded-xl border border-line bg-surface-2 px-3 py-2.5">{{ old('description', $book->description) }}</textarea>
     </label>

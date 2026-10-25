@@ -152,7 +152,7 @@
 
     @if ($latestBook)
         <a href="{{ route('library.show', $latestBook) }}" class="card flex items-center gap-4 px-4 py-3.5 hover:bg-surface-2">
-            <span class="grid h-14 w-11 shrink-0 place-items-center rounded-lg bg-lapis-ink text-[0.6rem] font-semibold text-white/90 dark:bg-surface-2">{{ $latestBook->extension() }}</span>
+            <x-book-cover :book="$latestBook" size="sm" />
             <span class="min-w-0 flex-1">
                 <span class="block text-sm text-muted">أحدث كتاب في المكتبة</span>
                 <span class="block truncate font-medium">{{ $latestBook->title }}</span>
