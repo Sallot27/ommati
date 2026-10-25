@@ -14,6 +14,7 @@ class QuranController extends Controller
 
         return view('quran.index', [
             'surahs' => $quran->index(),
+            'mushafPage' => $request->user()->pref('mushaf_page'),
             'lastRead' => is_array($lastRead) && $quran->exists((int) $lastRead['s'], (int) $lastRead['a'])
                 ? $lastRead + ['name' => $quran->surah((int) $lastRead['s'])['name']] : null,
         ]);
@@ -61,9 +62,17 @@ class QuranController extends Controller
         $source = $request->query('source', 'muyassar');
         abort_unless(isset(Tafsir::SOURCES[$source]), 404);
 
+        $text = $tafsir->text($source, $surah, $ayah);
+        // The first ayah of a surah carries an introduction to the surah before "[التفسير]":
+        // show the ayah's tafsir first and the introduction after it.
+        if ($text !== null && str_contains($text, '[التفسير]')) {
+            [$intro, $body] = array_map('trim', explode('[التفسير]', $text, 2));
+            $text = $body.($intro !== '' ? "\n\n— عن السورة —\n\n".$intro : '');
+        }
+
         return response()->json([
             'source' => Tafsir::SOURCES[$source],
-            'text' => $tafsir->text($source, $surah, $ayah),
+            'text' => $text,
         ]);
     }
 

@@ -64,6 +64,7 @@
         @yield('content')
     </main>
 
+    @unless (View::hasSection('immersive'))
     <nav class="fixed inset-x-3 z-40 mx-auto max-w-xl rounded-[1.6rem] border border-line bg-surface/95 shadow-xl shadow-black/10 backdrop-blur-md" style="bottom: max(env(safe-area-inset-bottom), 0.75rem)" aria-label="التنقل الرئيسي">
         <ul class="grid grid-cols-5 px-1 py-1">
             @foreach ($nav as [$route, $label, $icon, $pattern])
@@ -83,6 +84,7 @@
             @endforeach
         </ul>
     </nav>
+    @endunless
     @stack('scripts')
 </body>
 </html>

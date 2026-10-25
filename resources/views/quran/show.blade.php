@@ -74,9 +74,10 @@
                 <h2 class="font-semibold">سورة {{ $surah['name'] }} — الآية <span x-text="ar(sheet)"></span></h2>
                 <button @click="sheet = null" class="grid size-10 place-items-center rounded-full hover:bg-surface-2" aria-label="إغلاق"><x-icon name="x" /></button>
             </div>
-            <div class="mt-3 grid grid-cols-2 gap-2">
+            <div class="mt-3 grid grid-cols-3 gap-2">
                 <button @click="playFrom(sheet); sheet = null" class="btn btn-primary"><x-icon name="play" :size="20" /> استمعي</button>
                 <a :href="'{{ route('hifz.learn', $surah['n']) }}?from=' + sheet" class="btn btn-soft"><x-icon name="sprout" :size="20" /> أحفظها</a>
+                <a :href="'{{ route('mushaf') }}?s={{ $surah['n'] }}&a=' + sheet" class="btn btn-soft"><x-icon name="book" :size="20" /> في المصحف</a>
             </div>
 
             <div class="mt-5 flex gap-2 overflow-x-auto" role="tablist">

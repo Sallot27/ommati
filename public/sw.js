@@ -1,5 +1,5 @@
 /* Service worker: offline pages, cached assets, and push reminders. */
-const VERSION = 'v2';
+const VERSION = 'v3';
 const PAGES = `pages-${VERSION}`;
 const ASSETS = `assets-${VERSION}`;
 
@@ -25,8 +25,8 @@ self.addEventListener('fetch', (event) => {
     // Audio and book files are large; let the browser handle them.
     if (url.hostname.includes('islamic.network') || url.pathname.includes('/file')) return;
 
-    // Built assets and fonts: cache first.
-    if (url.pathname.startsWith('/build/') || url.pathname.startsWith('/icons/') || url.pathname.endsWith('.woff2')) {
+    // Built assets, fonts (incl. the mushaf fonts on jsDelivr) and mushaf pages: cache first.
+    if (url.pathname.startsWith('/build/') || url.pathname.startsWith('/icons/') || url.pathname.endsWith('.woff2') || url.pathname.startsWith('/mushaf-data/pages/')) {
         event.respondWith(
             caches.match(req).then((hit) => hit || fetch(req).then((res) => {
                 if (res.ok || res.type === 'opaque') {

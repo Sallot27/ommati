@@ -7,6 +7,7 @@ use App\Http\Controllers\HadithController;
 use App\Http\Controllers\HifzController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LibraryController;
+use App\Http\Controllers\MushafController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PrayerController;
 use App\Http\Controllers\PushController;
@@ -33,6 +34,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/quran/{surah}', [QuranController::class, 'data'])->whereNumber('surah')->name('quran.data');
     Route::get('/api/tafsir/{surah}/{ayah}', [QuranController::class, 'tafsir'])->whereNumber(['surah', 'ayah'])->name('quran.tafsir');
     Route::post('/quran/last-read', [QuranController::class, 'lastRead'])->name('quran.last-read');
+    Route::get('/mushaf/{page?}', [MushafController::class, 'show'])->whereNumber('page')->name('mushaf');
+    Route::post('/mushaf-page', [MushafController::class, 'save'])->name('mushaf.save');
     Route::get('/listen', [QuranController::class, 'listen'])->name('listen');
 
     // آية اليوم وحديث اليوم

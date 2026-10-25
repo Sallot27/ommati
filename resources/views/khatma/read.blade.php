@@ -5,6 +5,7 @@
 @section('content')
 @php $D = fn ($n) => \App\Services\Quran::digits($n); $lastPage = null; @endphp
 <p class="text-center text-muted">الصفحات {{ $D($portion['from']) }} إلى {{ $D($portion['to']) }}</p>
+<a href="{{ route('mushaf', $portion['from']) }}" class="btn btn-soft mx-auto mt-2 flex w-fit"><x-icon name="book" :size="20" /> اقرئي الورد من صفحات المصحف</a>
 
 @foreach ($groups as $g)
     @php $s = $g['surah']; @endphp

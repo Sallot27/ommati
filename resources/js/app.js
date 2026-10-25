@@ -470,6 +470,245 @@ Alpine.data('quranReader', (surah, reciter, startAyah = null, autoplay = false) 
     ar,
 }));
 
+/* ---------------- the Madinah Mushaf, page by page ---------------- */
+
+const mushafFonts = new Map(); // font id -> Promise
+
+function mushafFont(base, id) {
+    if (!mushafFonts.has(id)) {
+        const file = id === 'B' ? 'QCF4_QBSML.woff2' : `QCF4_Hafs_${String(id).padStart(2, '0')}_W.woff2`;
+        const face = new FontFace(`qcf${id}`, `url(${base}/${file})`, { display: 'block' });
+        const p = face.load().then((f) => { document.fonts.add(f); return f; });
+        p.catch(() => mushafFonts.delete(id));
+        mushafFonts.set(id, p);
+    }
+    return mushafFonts.get(id);
+}
+
+Alpine.data('mushaf', (cfg) => ({
+    page: cfg.page,
+    lines: [],
+    font: 1,
+    loading: true,
+    error: '',
+    size: 20,
+    active: cfg.focus,
+    sel: null,
+    sheet: null, // 'ayah' | 'index'
+    tab: 'surah',
+    q: '',
+    jump: '',
+    playing: false,
+    stopFlag: false,
+    reciter: cfg.reciters[store.get('reciter')] ? store.get('reciter') : cfg.reciter,
+    reciters: cfg.reciters,
+    surahs: cfg.surahs,
+    juz: cfg.juz,
+    tafsirSource: 'muyassar',
+    tafsirText: '',
+    tafsirLoading: false,
+    _cache: {},
+    _seq: 0,
+    _saveTimer: null,
+
+    init() {
+        this.load(this.page);
+        let t;
+        window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => this.fit(), 120); });
+        window.addEventListener('keydown', (e) => {
+            if (this.sheet) return;
+            if (e.key === 'ArrowLeft') this.next();
+            if (e.key === 'ArrowRight') this.prev();
+        });
+        let x0 = null, y0 = null;
+        const el = this.$refs.page;
+        el.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+        el.addEventListener('touchend', (e) => {
+            if (x0 === null) return;
+            const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+            x0 = null;
+            if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx)) return;
+            // The mushaf opens right-to-left: swipe to the right for the next page.
+            if (dx > 0) this.next(); else this.prev();
+        }, { passive: true });
+    },
+
+    async fetchPage(n) {
+        if (!this._cache[n]) {
+            this._cache[n] = fetch(`${cfg.pagesUrl}/${String(n).padStart(3, '0')}.json`).then((r) => {
+                if (!r.ok) throw new Error('page');
+                return r.json();
+            });
+            this._cache[n].catch(() => delete this._cache[n]);
+        }
+        return this._cache[n];
+    },
+
+    async load(n) {
+        n = Math.min(604, Math.max(1, n));
+        const seq = ++this._seq;
+        this.loading = true;
+        this.error = '';
+        try {
+            const data = await this.fetchPage(n);
+            const ids = new Set([data.font]);
+            data.lines.flat().forEach((w) => { if (w.f) ids.add(w.f); });
+            await Promise.all([...ids].map((id) => mushafFont(cfg.fontUrl, id)));
+            if (seq !== this._seq) return;
+            this.page = n;
+            this.font = data.font;
+            this.lines = data.lines;
+            this.loading = false;
+            await this.$nextTick();
+            this.fit();
+            history.replaceState(null, '', `/mushaf/${n}`);
+            clearTimeout(this._saveTimer);
+            this._saveTimer = setTimeout(() => post(cfg.saveUrl, { page: this.page }).catch(() => {}), 800);
+            [n + 1, n - 1].filter((x) => x >= 1 && x <= 604).forEach((x) => this.fetchPage(x).catch(() => {}));
+        } catch {
+            if (seq !== this._seq) return;
+            this.loading = false;
+            this.error = 'تعذّر تحميل الصفحة. تأكدي من الاتصال بالإنترنت ثم حاولي مرة أخرى.';
+        }
+    },
+
+    /* Size the glyphs so the whole page fits the screen, the longest line filling the width. */
+    fit() {
+        const box = this.$refs.lines;
+        if (!box) return;
+        const probe = 40;
+        box.style.width = '';
+        box.style.fontSize = `${probe}px`;
+        let widest = 0;
+        const widths = [];
+        box.querySelectorAll('[data-line="text"]').forEach((line) => {
+            let w = 0;
+            line.querySelectorAll('span').forEach((s) => { w += s.getBoundingClientRect().width; });
+            widths.push([line, w]);
+            widest = Math.max(widest, w);
+        });
+        if (!widest) return;
+        // Short lines (end of a surah) are centred, as in the printed mushaf.
+        widths.forEach(([line, w]) => line.classList.toggle('mushaf-short', w < widest * 0.8));
+        const avail = box.parentElement.clientWidth - 2; // frame content width
+        const byWidth = Math.min(probe * (avail / widest) * 0.985, 46);
+        // Height left between the page top and the reading bar (lines are 1.95em; the opening pages are shorter).
+        const top = box.getBoundingClientRect().top + window.scrollY;
+        const room = window.innerHeight - top - 120;
+        const byHeight = room / (15 * 1.95 + 0.6);
+        // Never shrink below 85% of the width fit — a little scrolling beats tiny letters.
+        this.size = this.page <= 2 ? byWidth * 0.9 : Math.max(Math.min(byWidth, byHeight), byWidth * 0.85);
+        box.style.fontSize = `${this.size}px`;
+        box.style.width = this.size < byWidth ? `${(widest * this.size) / probe / 0.985}px` : '';
+    },
+
+    lineKind(line) {
+        if (line.some((w) => w.t === 'h')) return 'header';
+        if (line.length === 1 && line[0].t === 'b') return 'basmala';
+        return 'text';
+    },
+    glyph(w) { return String.fromCharCode(w.c); },
+    family(w) { return `qcf${w.f || this.font}`; },
+    isAyah(w) { return !!w.k && w.t !== 'q'; },
+
+    next() { if (this.page < 604) this.load(this.page + 1); },
+    prev() { if (this.page > 1) this.load(this.page - 1); },
+    goPage(n) { this.sheet = null; this.load(n); },
+    goJump() {
+        const n = parseInt(String(this.jump).replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)), 10);
+        if (n >= 1 && n <= 604) this.goPage(n);
+        this.jump = '';
+    },
+
+    get meta() { return cfg.pages[this.page - 1] || { s: [], j: 1 }; },
+    get surahTitle() { return this.meta.s.map((n) => this.surahs[n - 1].name).join(' · '); },
+    get filtered() {
+        const q = this.q.replace('سورة', '').trim();
+        return q ? this.surahs.filter((s) => s.name.includes(q) || String(s.n) === q) : this.surahs;
+    },
+    keyLabel(k) {
+        if (!k) return '';
+        const [s, a] = k.split(':').map(Number);
+        return `سورة ${this.surahs[s - 1].name} — الآية ${ar(a)}`;
+    },
+
+    select(k) {
+        this.sel = k;
+        this.active = k;
+        this.sheet = 'ayah';
+        this.loadTafsir();
+    },
+    closeSheet() {
+        this.sheet = null;
+        if (!this.playing) this.active = null;
+    },
+    async loadTafsir() {
+        const [s, a] = this.sel.split(':');
+        this.tafsirLoading = true;
+        this.tafsirText = '';
+        try {
+            const res = await fetch(`/api/tafsir/${s}/${a}?source=${this.tafsirSource}`);
+            const data = await res.json();
+            this.tafsirText = data.text || 'لا يتوفر تفسير لهذه الآية في هذا المصدر.';
+        } catch {
+            this.tafsirText = 'تعذّر تحميل التفسير، تأكدي من الاتصال بالإنترنت.';
+        } finally {
+            this.tafsirLoading = false;
+        }
+    },
+
+    audioUrl(s, a) {
+        const r = this.reciters[this.reciter];
+        return `https://cdn.islamic.network/quran/audio/${r.bitrate}/${this.reciter}/${this.surahs[s - 1].start + a - 1}.mp3`;
+    },
+    firstOnPage() {
+        const w = this.lines.flat().find((x) => x.t === 'w');
+        return w ? w.k : '1:1';
+    },
+    toggle() {
+        if (this.playing) this.stop();
+        else this.playFrom(this.active || this.firstOnPage());
+    },
+    stop() {
+        this.stopFlag = true;
+        player.pause();
+        this.playing = false;
+    },
+    async playFrom(k) {
+        this.stop();
+        await new Promise((r) => setTimeout(r, 0));
+        this.stopFlag = false;
+        this.sheet = null;
+        this.playing = true;
+        let [s, a] = k.split(':').map(Number);
+        try {
+            while (s <= 114 && !this.stopFlag) {
+                this.active = `${s}:${a}`;
+                const p = cfg.ayahPages[s][a - 1];
+                if (p !== this.page) await this.load(p);
+                if (a === 1 && s !== 1 && s !== 9) {
+                    // al-Basmala before each surah, as in the mushaf
+                    if (!(await playOnce(this.audioUrl(1, 1))) || this.stopFlag) break;
+                }
+                if (!(await playOnce(this.audioUrl(s, a))) || this.stopFlag) break;
+                a++;
+                if (a > this.surahs[s - 1].count) { s++; a = 1; }
+            }
+        } catch {
+            this.error = 'تعذّر تشغيل التلاوة، تأكدي من الاتصال بالإنترنت.';
+            setTimeout(() => { this.error = ''; }, 4000);
+        }
+        this.playing = false;
+    },
+    setReciter(id) {
+        this.reciter = id;
+        store.set('reciter', id);
+        post('/settings', { reciter: id }).catch(() => {});
+        if (this.playing) this.playFrom(this.active);
+    },
+    ar,
+}));
+
 /* ---------------- daily ayah: simple play button ---------------- */
 
 Alpine.data('ayahAudio', (urls) => ({

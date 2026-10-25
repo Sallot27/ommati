@@ -35,6 +35,11 @@ return [
         ],
     ],
 
+    // Madinah Mushaf glyph fonts (KFGQPC QCF4, 1441 AH) — loaded by the browser, not bundled.
+    'mushaf' => [
+        'font_url' => env('MUSHAF_FONT_URL', 'https://cdn.jsdelivr.net/npm/quran-qcf4@1.1.0/fonts-woff2'),
+    ],
+
     'telegram' => [
         'bot_token' => env('TELEGRAM_BOT_TOKEN'),
         'webhook_secret' => env('TELEGRAM_WEBHOOK_SECRET'),

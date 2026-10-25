@@ -6,6 +6,14 @@
 
 @section('content')
 <div x-data="{ q: '' }">
+    <a href="{{ route('mushaf') }}" class="mb-3 flex items-center gap-4 rounded-2xl border border-saffron/40 bg-saffron-soft px-5 py-4">
+        <x-icon name="book" />
+        <span class="flex-1">
+            <span class="block text-lg font-semibold">المصحف بصفحاته</span>
+            <span class="text-sm text-muted">مصحف المدينة صفحة صفحة مع التلاوة والتفسير{{ $mushafPage ? ' — أكملي من صفحة '.\App\Services\Quran::digits($mushafPage) : '' }}</span>
+        </span>
+        <x-icon name="forward" :size="20" />
+    </a>
     @if ($lastRead)
         <a href="{{ route('quran.show', $lastRead['s']) }}?a={{ $lastRead['a'] }}" class="mb-4 flex items-center gap-3 rounded-2xl bg-lapis-ink px-5 py-4 text-white dark:text-[#0f1823]">
             <x-icon name="book" />
