@@ -43,6 +43,7 @@ class MushafController extends Controller
                 'pages' => $mushaf->pages(),
                 'ayahPages' => $mushaf->ayahPages(),
                 'juz' => $mushaf->juzStarts(),
+                'waqf' => config('waqf.marks'),
             ],
         ]);
     }

@@ -8,7 +8,7 @@
 @endsection
 
 @section('content')
-<div x-data="mushaf(@js($cfg))" @mushaf-index.window="sheet = 'index'" class="-mx-4 pb-16">
+<div x-data="mushaf(@js($cfg))" @mushaf-index.window="sheet = 'index'" @waqf-closed.window="markWord = null" class="-mx-4 pb-16">
 
     {{-- Page --}}
     <div class="px-2">
@@ -24,13 +24,23 @@
 
                 <div x-ref="lines" class="mushaf-lines" :class="{ 'opacity-40': loading, 'mushaf-opening': page <= 2 }" dir="rtl">
                     <template x-for="(line, i) in lines" :key="page + '-' + i">
-                        <div class="mushaf-line" :data-line="lineKind(line)">
-                            <template x-for="(w, j) in line" :key="j">
-                                <span :style="'font-family:' + family(w)"
-                                      :class="{ 'mushaf-hl': isAyah(w) && w.k === active, 'cursor-pointer': isAyah(w), 'mushaf-h': w.t === 'h' }"
-                                      @click="isAyah(w) && select(w.k)"
-                                      x-text="glyph(w)"></span>
-                            </template>
+                        <div class="mushaf-row">
+                            <div class="mushaf-line" :data-line="lineKind(line)">
+                                <template x-for="(w, j) in line" :key="j">
+                                    <span :style="'font-family:' + family(w)"
+                                          :class="{ 'mushaf-hl': isAyah(w) && w.k === active, 'mushaf-mark-hl': markWord === i + '-' + j, 'cursor-pointer': isAyah(w), 'mushaf-h': w.t === 'h' }"
+                                          @click="isAyah(w) && select(w.k)"
+                                          x-text="glyph(w)"></span>
+                                </template>
+                            </div>
+                            {{-- Waqf marks of this line, in the outer margin (right on odd pages, left on even ones) --}}
+                            <div class="mushaf-margin" :style="'order:' + (page % 2 ? -1 : 1)">
+                                <template x-for="mk in lineMarks(line, i)" :key="mk.key">
+                                    <button type="button" class="waqf-chip" :class="'tone-' + waqf[mk.ch].tone"
+                                            @click="markWord = mk.id; $dispatch('waqf', mk.ch)"
+                                            :aria-label="'علامة ' + waqf[mk.ch].name" x-text="waqf[mk.ch].label"></button>
+                                </template>
+                            </div>
                         </div>
                     </template>
                 </div>
@@ -38,7 +48,7 @@
 
             <p class="pt-1.5 text-center text-sm text-muted" x-text="ar(page)"></p>
         </div>
-        <p class="mt-1 text-center text-xs text-muted">اضغطي على أي آية لتفسيرها أو الاستماع لها · اسحبي للتقليب</p>
+        <p class="mt-1 text-center text-xs text-muted">اضغطي على أي آية لتفسيرها أو الاستماع لها · علامات الوقف على جانب الصفحة · اسحبي للتقليب</p>
     </div>
 
     {{-- Bottom bar: RTL — previous on the right, next on the left --}}
@@ -138,6 +148,7 @@
                     <button class="btn btn-primary px-6">اذهبي</button>
                 </form>
 
+                <button type="button" @click="sheet = null; $dispatch('waqf', null)" class="btn btn-soft mt-5 w-full">علامات الوقف وطريقة العمل بها</button>
                 <p class="mt-6 text-xs leading-6 text-muted">
                     صفحات مصحف المدينة النبوية برواية حفص عن عاصم (إصدار ١٤٤١هـ، ٦٠٤ صفحات) بخط عثمان طه، وخطوطه من مجمع الملك فهد لطباعة المصحف الشريف.
                     التلاوات من cdn.islamic.network، والتفاسير من quran.com.
@@ -146,4 +157,5 @@
         </section>
     </div>
 </div>
+<x-waqf-sheet />
 @endsection

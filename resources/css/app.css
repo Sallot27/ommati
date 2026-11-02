@@ -6,6 +6,13 @@
 @import '@fontsource/noto-naskh-arabic/600.css';
 @import '@fontsource/amiri-quran/400.css';
 
+/* KFGQPC Uthmanic Script HAFS v22 — خط مجمع الملك فهد للرسم العثماني (يطابق نص المصحف في resources/data/quran.json) */
+@font-face {
+    font-family: 'Uthmanic Hafs';
+    src: url('../fonts/UthmanicHafs-v22.woff2') format('woff2');
+    font-display: swap;
+}
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../views';
@@ -68,7 +75,7 @@
 
     --font-sans: 'Readex Pro', 'Noto Naskh Arabic', system-ui, sans-serif;
     --font-naskh: 'Noto Naskh Arabic', 'Readex Pro', serif;
-    --font-quran: 'Amiri Quran', 'Amiri', 'Noto Naskh Arabic', serif;
+    --font-quran: 'Uthmanic Hafs', 'Amiri Quran', 'Noto Naskh Arabic', serif;
 }
 
 /* Reader-controlled text size (A− / A+), applied on <html>. */
@@ -150,6 +157,32 @@ body {
 .mushaf-hl { background: linear-gradient(transparent 14%, color-mix(in srgb, var(--saffron) 24%, transparent) 14% 86%, transparent 86%); border-radius: 0; }
 .dark .mushaf-frame { --paper: #1c2530; color: #ecebe6; }
 .dark .mushaf-line[data-line='header'] { color: #e9d9a8; }
+
+/* Inside Quran text the Hafs font draws the ayah-end circle around the digits itself. */
+.quran .ayah-no {
+    display: inline; width: auto; height: auto; margin-inline: 0.1em;
+    font-family: var(--font-quran); font-size: 1em; font-weight: 400; color: var(--saffron);
+}
+.quran .ayah-no::before { content: none; }
+
+/* Waqf (stop) marks */
+.waqf-word { cursor: pointer; border-radius: 0.25em; background: linear-gradient(transparent 82%, color-mix(in srgb, var(--saffron) 35%, transparent) 82% 90%, transparent 90%); }
+.waqf-chip {
+    display: inline-grid; place-items: center; min-width: 1.7rem; height: 1.45rem; padding-inline: 0.2rem;
+    border-radius: 0.45rem; font-family: var(--font-sans); font-size: 0.72rem; font-weight: 600; line-height: 1;
+    color: var(--tone); background: color-mix(in srgb, var(--tone) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--tone) 40%, transparent);
+}
+.tone-rose { --tone: var(--rose); } .tone-teal { --tone: var(--teal); } .tone-saffron { --tone: var(--saffron); }
+.tone-lapis { --tone: var(--lapis); } .tone-plum { --tone: #8a4f9e; } .tone-slate { --tone: #6b7785; }
+.dark .tone-plum { --tone: #c89ad8; } .dark .tone-slate { --tone: #a8b3bf; }
+
+/* Mushaf page: marks shown in the side margin beside their line */
+.mushaf-row { display: flex; align-items: center; }
+.mushaf-row > .mushaf-line { flex: 1; min-width: 0; }
+.mushaf-margin { width: var(--margin-w, 2rem); flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 1rem; }
+.mushaf-margin .waqf-chip { min-width: 1.6rem; height: 1.25rem; font-size: 0.66rem; }
+.mushaf-mark-hl { background: color-mix(in srgb, var(--saffron) 30%, transparent); border-radius: 0.3em; }
 
 /* Text with diacritics (adhkar, hadith) */
 .naskh { font-family: var(--font-naskh); line-height: 2.05; }

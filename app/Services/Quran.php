@@ -157,4 +157,26 @@ class Quran
 
         return [(int) $s, (int) $parts[0], (int) ($parts[1] ?? $parts[0])];
     }
+
+    /** Waqf mark carried by a word (sakt only when the small seen ends the word), or null. */
+    public static function waqfMark(string $word): ?string
+    {
+        if (preg_match('/[\x{06D6}-\x{06DB}]/u', $word, $m)) {
+            return $m[0];
+        }
+
+        return preg_match('/\x{06DC}\x{06D7}?$/u', $word) ? 'ۜ' : null;
+    }
+
+    /** Ayah text as HTML with the words carrying a waqf mark made tappable (they open the waqf sheet). */
+    public static function waqfHtml(string $text): string
+    {
+        return implode(' ', array_map(function ($word) {
+            $e = e($word);
+            $mark = self::waqfMark($word);
+
+            return $mark === null ? $e
+                : '<span class="waqf-word" role="button" @click.stop="$dispatch(\'waqf\', \''.$mark.'\')">'.$e.'</span>';
+        }, explode(' ', $text)));
+    }
 }

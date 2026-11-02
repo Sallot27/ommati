@@ -9,18 +9,21 @@
     <div class="mb-4 text-center">
         <p class="text-muted">{{ $surah['type'] }} · {{ $D($surah['count']) }} آية · الصفحة {{ $D($surah['pages'][0]) }}</p>
         @if (! in_array($surah['n'], [1, 9]))
-            <p class="quran mt-3 text-center">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</p>
+            <p class="quran mt-3 text-center">بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ</p>
         @endif
     </div>
 
-    <p class="text-sm text-muted">اضغطي على أي آية لسماعها أو قراءة تفسيرها.</p>
+    <div class="flex items-center justify-between gap-2">
+        <p class="text-sm text-muted">اضغطي على أي آية لسماعها أو تفسيرها، وعلى الكلمة المسطَّرة لمعرفة علامة الوقف.</p>
+        <button type="button" @click="$dispatch('waqf', null)" class="btn btn-soft min-h-9 shrink-0 px-3 text-sm">علامات الوقف</button>
+    </div>
 
     <article class="quran mt-2 text-justify" style="text-align-last: center">
         @foreach ($surah['ayahs'] as $i => $text)
             <span id="a-{{ $i + 1 }}" role="button" tabindex="0"
                   @click="openSheet({{ $i + 1 }})" @keydown.enter="openSheet({{ $i + 1 }})"
                   :class="current === {{ $i + 1 }} ? 'bg-saffron-soft rounded-lg' : (sheet === {{ $i + 1 }} ? 'bg-surface-2 rounded-lg' : '')"
-                  class="cursor-pointer scroll-mt-28 transition-colors">{{ $text }}<span class="ayah-no">{{ $D($i + 1) }}</span></span>
+                  class="cursor-pointer scroll-mt-28 transition-colors">{!! \App\Services\Quran::waqfHtml($text) !!}<span class="ayah-no">{{ $D($i + 1) }}</span></span>
         @endforeach
     </article>
 
@@ -95,4 +98,5 @@
         </section>
     </div>
 </div>
+    <x-waqf-sheet />
 @endsection

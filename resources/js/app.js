@@ -470,6 +470,22 @@ Alpine.data('quranReader', (surah, reciter, startAyah = null, autoplay = false) 
     ar,
 }));
 
+/* ---------------- waqf (stop) marks: explanation sheet ---------------- */
+
+Alpine.data('waqfSheet', (cfg) => ({
+    marks: cfg.marks,
+    open: false,
+    mark: null,
+    show(ch) {
+        this.mark = ch && this.marks[ch] ? ch : null;
+        this.open = true;
+    },
+    close() {
+        this.open = false;
+        window.dispatchEvent(new CustomEvent('waqf-closed'));
+    },
+}));
+
 /* ---------------- the Madinah Mushaf, page by page ---------------- */
 
 const mushafFonts = new Map(); // font id -> Promise
@@ -507,6 +523,8 @@ Alpine.data('mushaf', (cfg) => ({
     tafsirSource: 'muyassar',
     tafsirText: '',
     tafsirLoading: false,
+    waqf: cfg.waqf,
+    markWord: null,
     _cache: {},
     _seq: 0,
     _saveTimer: null,
@@ -590,7 +608,8 @@ Alpine.data('mushaf', (cfg) => ({
         if (!widest) return;
         // Short lines (end of a surah) are centred, as in the printed mushaf.
         widths.forEach(([line, w]) => line.classList.toggle('mushaf-short', w < widest * 0.8));
-        const avail = box.parentElement.clientWidth - 2; // frame content width
+        const margin = box.querySelector('.mushaf-margin')?.getBoundingClientRect().width || 0;
+        const avail = box.clientWidth - margin - 2; // the lines box fills the frame's content width; minus the marks margin
         const byWidth = Math.min(probe * (avail / widest) * 0.985, 46);
         // Height left between the page top and the reading bar (lines are 1.95em; the opening pages are shorter).
         const top = box.getBoundingClientRect().top + window.scrollY;
@@ -599,7 +618,16 @@ Alpine.data('mushaf', (cfg) => ({
         // Never shrink below 85% of the width fit — a little scrolling beats tiny letters.
         this.size = this.page <= 2 ? byWidth * 0.9 : Math.max(Math.min(byWidth, byHeight), byWidth * 0.85);
         box.style.fontSize = `${this.size}px`;
-        box.style.width = this.size < byWidth ? `${(widest * this.size) / probe / 0.985}px` : '';
+        box.style.width = this.size < byWidth ? `${(widest * this.size) / probe / 0.985 + margin}px` : '';
+    },
+
+    /** Waqf marks on a line, in reading order: [{ id: 'line-word', ch }] */
+    lineMarks(line, i) {
+        const out = [];
+        line.forEach((w, j) => {
+            if (w.m) [...w.m].forEach((ch) => { if (this.waqf[ch]) out.push({ id: `${i}-${j}`, ch, key: `${i}-${j}-${ch}` }); });
+        });
+        return out;
     },
 
     lineKind(line) {
@@ -772,7 +800,7 @@ Alpine.data('hifzSession', (cfg) => ({
         return this.ayahs[this.index - 1];
     },
     get words() {
-        return this.ayah ? this.ayah.text.split(' ') : [];
+        return this.ayah ? this.ayah.text.split(' ').filter((w) => w && w !== '۞') : [];
     },
     firstLetter(w) {
         // first base letter plus its diacritics

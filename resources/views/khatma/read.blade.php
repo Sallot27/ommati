@@ -14,7 +14,7 @@
             <p class="text-lg font-semibold">سورة {{ $s['name'] }}</p>
         </div>
         @if (! in_array($s['n'], [1, 9]))
-            <p class="quran mt-3 text-center">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</p>
+            <p class="quran mt-3 text-center">بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ</p>
         @endif
     @endif
     <article class="quran mt-2 text-justify" style="text-align-last: center">
