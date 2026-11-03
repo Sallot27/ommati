@@ -44,6 +44,13 @@ class MushafController extends Controller
                 'ayahPages' => $mushaf->ayahPages(),
                 'juz' => $mushaf->juzStarts(),
                 'waqf' => config('waqf.marks'),
+                'tajweed' => [
+                    'fontUrl' => rtrim((string) config('tajweed.font_url'), '/'),
+                    'rules' => config('tajweed.rules'),
+                    'base' => config('tajweed.base'),
+                    // one-letter codes stored per word in the page data
+                    'letters' => ['i' => 'idgham', 'g' => 'ghunnah', 'l' => 'lazim', 'w' => 'wajib', 'j' => 'jaiz', 'm' => 'madd2', 't' => 'tafkhim', 'q' => 'qalqalah'],
+                ],
             ],
         ]);
     }

@@ -486,6 +486,19 @@ Alpine.data('waqfSheet', (cfg) => ({
     },
 }));
 
+Alpine.data('tajweedSheet', (rules) => ({
+    rules,
+    open: false,
+    rule: null,
+    show(key) {
+        this.rule = key && this.rules[key] ? key : null;
+        this.open = true;
+    },
+    color(key) {
+        return this.rules[key][document.documentElement.classList.contains('dark') ? 'dark' : 'light'];
+    },
+}));
+
 /* ---------------- the Madinah Mushaf, page by page ---------------- */
 
 const mushafFonts = new Map(); // font id -> Promise
@@ -499,6 +512,42 @@ function mushafFont(base, id) {
         mushafFonts.set(id, p);
     }
     return mushafFonts.get(id);
+}
+
+/* Tajweed colour page fonts (KFGQPC V4 tajweed, one per page) and their recoloured palettes. */
+const tajweedFonts = new Map();
+const tajweedPalettes = new Set();
+
+function tajweedFont(base, page) {
+    if (!tajweedFonts.has(page)) {
+        // The package ships page 328 as .woff, all other pages as .woff2.
+        const file = page === 328 ? 'p328.woff' : `p${page}.woff2`;
+        const face = new FontFace(`qul${page}`, `url(${base}/${file})`, { display: 'block' });
+        const p = face.load().then((f) => { document.fonts.add(f); return f; });
+        p.catch(() => tajweedFonts.delete(page));
+        tajweedFonts.set(page, p);
+    }
+    return tajweedFonts.get(page);
+}
+
+/** Declare the calm palette for one page font (the colours live in the font's CPAL table). */
+function tajweedPalette(T, page, dark) {
+    const name = `--tj${dark ? 'd' : 'l'}${page}`;
+    if (!tajweedPalettes.has(name)) {
+        const mode = dark ? 'dark' : 'light';
+        const colors = { ...T.base[mode] };
+        Object.values(T.rules).forEach((r) => r.entries.forEach((e) => { colors[e] = r[mode]; }));
+        const list = Object.entries(colors).map(([i, c]) => `${i} ${c}`).join(', ');
+        let el = document.getElementById('tajweed-palettes');
+        if (!el) {
+            el = document.createElement('style');
+            el.id = 'tajweed-palettes';
+            document.head.appendChild(el);
+        }
+        el.textContent += `@font-palette-values ${name} { font-family: qul${page}; base-palette: 0; override-colors: ${list}; }\n`;
+        tajweedPalettes.add(name);
+    }
+    return name;
 }
 
 Alpine.data('mushaf', (cfg) => ({
@@ -525,6 +574,9 @@ Alpine.data('mushaf', (cfg) => ({
     tafsirLoading: false,
     waqf: cfg.waqf,
     markWord: null,
+    tj: cfg.tajweed,
+    tajweed: store.get('tajweed', false),
+    tajweedReady: false,
     _cache: {},
     _seq: 0,
     _saveTimer: null,
@@ -572,7 +624,13 @@ Alpine.data('mushaf', (cfg) => ({
             const ids = new Set([data.font]);
             data.lines.flat().forEach((w) => { if (w.f) ids.add(w.f); });
             await Promise.all([...ids].map((id) => mushafFont(cfg.fontUrl, id)));
+            let tjReady = false;
+            if (this.tajweed) {
+                // The colour font only changes colours; if it cannot load, the page shows without them.
+                tjReady = await tajweedFont(this.tj.fontUrl, n).then(() => true, () => false);
+            }
             if (seq !== this._seq) return;
+            this.tajweedReady = tjReady;
             this.page = n;
             this.font = data.font;
             this.lines = data.lines;
@@ -635,8 +693,35 @@ Alpine.data('mushaf', (cfg) => ({
         if (line.length === 1 && line[0].t === 'b') return 'basmala';
         return 'text';
     },
-    glyph(w) { return String.fromCharCode(w.c); },
-    family(w) { return `qcf${w.f || this.font}`; },
+    useTajweed(w) { return this.tajweed && this.tajweedReady && !!w.v; },
+    glyph(w) { return this.useTajweed(w) ? w.v : String.fromCharCode(w.c); },
+    family(w) { return this.useTajweed(w) ? `qul${this.page}` : `qcf${w.f || this.font}`; },
+    wordStyle(w) {
+        if (!this.useTajweed(w)) return `font-family:${this.family(w)}`;
+        const dark = document.documentElement.classList.contains('dark');
+        return `font-family:qul${this.page};font-palette:${tajweedPalette(this.tj, this.page, dark)}`;
+    },
+    toggleTajweed() {
+        this.tajweed = !this.tajweed;
+        store.set('tajweed', this.tajweed);
+        this.load(this.page);
+    },
+    /** Tajweed rules painted on a line, in order of first appearance. */
+    lineRules(line) {
+        if (!this.tajweed || !this.tajweedReady) return [];
+        const out = [];
+        line.forEach((w) => [...(w.r || '')].forEach((r) => { if (!out.includes(r)) out.push(r); }));
+        return out.map((r) => this.tj.letters[r]).filter(Boolean);
+    },
+    /** All rules on the page, in the legend's order. */
+    get pageRules() {
+        if (!this.tajweed || !this.tajweedReady) return [];
+        const used = new Set(this.lines.flat().flatMap((w) => [...(w.r || '')]).map((r) => this.tj.letters[r]));
+        return Object.keys(this.tj.rules).filter((k) => used.has(k));
+    },
+    ruleColor(key) {
+        return this.tj.rules[key][document.documentElement.classList.contains('dark') ? 'dark' : 'light'];
+    },
     isAyah(w) { return !!w.k && w.t !== 'q'; },
 
     next() { if (this.page < 604) this.load(this.page + 1); },

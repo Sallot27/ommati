@@ -1,5 +1,5 @@
 /* Service worker: offline pages, cached assets, and push reminders. */
-const VERSION = 'v4';
+const VERSION = 'v5';
 const PAGES = `pages-${VERSION}`;
 const ASSETS = `assets-${VERSION}`;
 

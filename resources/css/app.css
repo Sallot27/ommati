@@ -180,8 +180,10 @@ body {
 /* Mushaf page: marks shown in the side margin beside their line */
 .mushaf-row { display: flex; align-items: center; }
 .mushaf-row > .mushaf-line { flex: 1; min-width: 0; }
-.mushaf-margin { width: var(--margin-w, 2rem); flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 1rem; }
-.mushaf-margin .waqf-chip { min-width: 1.6rem; height: 1.25rem; font-size: 0.66rem; }
+.mushaf-margin { width: var(--margin-w, 2.1rem); flex-shrink: 0; align-self: stretch; position: relative; font-size: 1rem; }
+/* The margin never makes a line taller: its content floats centred on the line. */
+.mushaf-margin > .mushaf-margin-in { position: absolute; inset-inline: 0; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.mushaf-margin .waqf-chip { min-width: 1.6rem; height: 1.1rem; font-size: 0.64rem; }
 .mushaf-mark-hl { background: color-mix(in srgb, var(--saffron) 30%, transparent); border-radius: 0.3em; }
 
 /* Text with diacritics (adhkar, hadith) */
@@ -246,3 +248,17 @@ body {
 }
 
 .prose-ar p { margin-block: 0.6em; }
+
+/* Tajweed (colour font): dots beside each line, legend under the page */
+.tone-waqf { --tone: #b8901a; }
+.dark .tone-waqf { --tone: #e6c55a; }
+.tj-dots { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; max-width: 2rem; }
+.tj-dot { width: 0.45rem; height: 0.45rem; border-radius: 999px; background: var(--c); flex-shrink: 0; }
+button.tj-dot { width: 0.45rem; height: 0.45rem; }
+.tj-legend .tj-dot { width: 0.55rem; height: 0.55rem; }
+.tj-legend {
+    display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.15rem 0.55rem;
+    border-radius: 999px; font-size: 0.78rem; color: var(--text);
+    background: color-mix(in srgb, var(--c) 10%, transparent); border: 1px solid color-mix(in srgb, var(--c) 35%, transparent);
+}
+#tajweed-toggle.tj-on { background: color-mix(in srgb, var(--teal) 18%, transparent); color: var(--teal); }

@@ -4,11 +4,12 @@
 @section('immersive', '1')
 
 @section('header-actions')
-    <button type="button" onclick="window.dispatchEvent(new Event('mushaf-index'))" class="btn btn-soft min-h-10 px-3 text-sm"><x-icon name="grid" :size="20" /> الفهرس</button>
+    <button type="button" onclick="window.dispatchEvent(new Event('mushaf-tajweed'))" class="btn btn-soft min-h-10 px-3 text-sm" id="tajweed-toggle">تجويد</button>
+    <button type="button" onclick="window.dispatchEvent(new Event('mushaf-index'))" class="btn btn-soft min-h-10 px-3 text-sm" aria-label="الفهرس"><x-icon name="grid" :size="20" /></button>
 @endsection
 
 @section('content')
-<div x-data="mushaf(@js($cfg))" @mushaf-index.window="sheet = 'index'" @waqf-closed.window="markWord = null" class="-mx-4 pb-16">
+<div x-data="mushaf(@js($cfg))" @mushaf-index.window="sheet = 'index'" @waqf-closed.window="markWord = null" @mushaf-tajweed.window="toggleTajweed()" x-effect="document.getElementById('tajweed-toggle')?.classList.toggle('tj-on', tajweed)" class="-mx-4 pb-16">
 
     {{-- Page --}}
     <div class="px-2">
@@ -27,7 +28,7 @@
                         <div class="mushaf-row">
                             <div class="mushaf-line" :data-line="lineKind(line)">
                                 <template x-for="(w, j) in line" :key="j">
-                                    <span :style="'font-family:' + family(w)"
+                                    <span :style="wordStyle(w)"
                                           :class="{ 'mushaf-hl': isAyah(w) && w.k === active, 'mushaf-mark-hl': markWord === i + '-' + j, 'cursor-pointer': isAyah(w), 'mushaf-h': w.t === 'h' }"
                                           @click="isAyah(w) && select(w.k)"
                                           x-text="glyph(w)"></span>
@@ -35,11 +36,18 @@
                             </div>
                             {{-- Waqf marks of this line, in the outer margin (right on odd pages, left on even ones) --}}
                             <div class="mushaf-margin" :style="'order:' + (page % 2 ? -1 : 1)">
+                              <div class="mushaf-margin-in">
+                                <div class="tj-dots" x-show="lineRules(line).length">
+                                    <template x-for="r in lineRules(line)" :key="r">
+                                        <button type="button" class="tj-dot" :style="'--c:' + ruleColor(r)" @click="$dispatch('tajweed', r)" :aria-label="tj.rules[r].name"></button>
+                                    </template>
+                                </div>
                                 <template x-for="mk in lineMarks(line, i)" :key="mk.key">
-                                    <button type="button" class="waqf-chip" :class="'tone-' + waqf[mk.ch].tone"
+                                    <button type="button" class="waqf-chip" :class="tajweed && tajweedReady ? 'tone-waqf' : 'tone-' + waqf[mk.ch].tone"
                                             @click="markWord = mk.id; $dispatch('waqf', mk.ch)"
                                             :aria-label="'علامة ' + waqf[mk.ch].name" x-text="waqf[mk.ch].label"></button>
                                 </template>
+                              </div>
                             </div>
                         </div>
                     </template>
@@ -47,6 +55,16 @@
             </div>
 
             <p class="pt-1.5 text-center text-sm text-muted" x-text="ar(page)"></p>
+
+            {{-- Tajweed legend: the colours used on this page --}}
+            <div x-show="tajweed && tajweedReady" x-cloak class="mt-1 flex flex-wrap justify-center gap-1.5 px-1">
+                <template x-for="k in pageRules" :key="k">
+                    <button type="button" @click="$dispatch('tajweed', k)" class="tj-legend" :style="'--c:' + ruleColor(k)">
+                        <span class="tj-dot"></span><span x-text="tj.rules[k].name"></span>
+                    </button>
+                </template>
+                <button type="button" @click="$dispatch('waqf', null)" class="tj-legend tone-waqf" style="--c: var(--tone)"><span class="tj-dot"></span>علامات الوقف</button>
+            </div>
         </div>
         <p class="mt-1 text-center text-xs text-muted">اضغطي على أي آية لتفسيرها أو الاستماع لها · علامات الوقف على جانب الصفحة · اسحبي للتقليب</p>
     </div>
@@ -157,5 +175,6 @@
         </section>
     </div>
 </div>
+<x-tajweed-sheet />
 <x-waqf-sheet />
 @endsection
